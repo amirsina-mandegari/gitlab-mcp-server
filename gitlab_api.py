@@ -9,7 +9,60 @@ async def get_merge_requests(gitlab_url, project_id, access_token, params):
     url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests"
     headers = _headers(access_token)
     async with aiohttp.ClientSession() as session:
+        async with session.get(
+            url, headers=headers, params=params
+        ) as response:
+            return (
+                response.status,
+                await response.json(),
+                await response.text()
+            )
+
+
+async def get_merge_request_pipeline(
+    gitlab_url, project_id, access_token, mr_iid
+):
+    """Get the latest pipeline for a merge request"""
+    url = (
+        f"{gitlab_url}/api/v4/projects/{project_id}/"
+        f"merge_requests/{mr_iid}/pipelines"
+    )
+    headers = _headers(access_token)
+    async with aiohttp.ClientSession() as session:
+        params = {"per_page": 1}
         async with session.get(url, headers=headers, params=params) as response:
+            data = await response.json()
+            return (
+                response.status,
+                data[0] if data else None,
+                await response.text()
+            )
+
+
+async def get_merge_request_changes(
+    gitlab_url, project_id, access_token, mr_iid
+):
+    """Get changes/diff stats for a merge request"""
+    url = (
+        f"{gitlab_url}/api/v4/projects/{project_id}/"
+        f"merge_requests/{mr_iid}/changes"
+    )
+    headers = _headers(access_token)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            return (
+                response.status,
+                await response.json(),
+                await response.text()
+            )
+
+
+async def get_project_info(gitlab_url, project_id, access_token):
+    """Get project information to check for merge conflicts"""
+    url = f"{gitlab_url}/api/v4/projects/{project_id}"
+    headers = _headers(access_token)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
             return (
                 response.status,
                 await response.json(),
@@ -72,7 +125,9 @@ async def get_branch_merge_requests(
     url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests"
     headers = _headers(access_token)
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers, params=params) as response:
+        async with session.get(
+            url, headers=headers, params=params
+        ) as response:
             return (
                 response.status,
                 await response.json(),
