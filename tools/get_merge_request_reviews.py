@@ -57,4 +57,7 @@ async def get_merge_request_reviews(
                         result += f"📍 **Line**: {pos['new_line']}\n"
             result += f"{note['body']}\n\n"
             result += "---\n\n"
-    return CallToolResult(content=[TextContent(type="text", text=result)]) 
+    return CallToolResult(
+        content=[TextContent(type="text", text=result)],
+        isError=False
+    ) 

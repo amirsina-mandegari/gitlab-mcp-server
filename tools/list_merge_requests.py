@@ -31,10 +31,16 @@ async def list_merge_requests(gitlab_url, project_id, access_token, args):
             result += f"- **State**: {mr['state']}\n"
             result += f"- **Updated**: {mr['updated_at']}\n"
             result += f"- **URL**: {mr['web_url']}\n\n"
-        return CallToolResult(content=[TextContent(type="text", text=result)])
+        return CallToolResult(
+            content=[TextContent(type="text", text=result)],
+            isError=False
+        )
     else:
         logging.error(f"GitLab API error {status}: {error_text}")
         return CallToolResult(
-            content=[TextContent(type="text", text=f"GitLab API error: {status} - {error_text}")],
+            content=[TextContent(
+                type="text", 
+                text=f"GitLab API error: {status} - {error_text}"
+            )],
             isError=True
         ) 

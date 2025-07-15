@@ -27,7 +27,8 @@ async def get_branch_merge_requests(
                             f"'{branch_name}'"
                         ),
                     )
-                ]
+                ],
+                isError=False
             )
         result = f"# Merge Requests for branch '{branch_name}'\n\n"
         for mr in mrs:
@@ -36,10 +37,16 @@ async def get_branch_merge_requests(
             result += f"- **Target**: {mr['target_branch']}\n"
             result += f"- **Updated**: {mr['updated_at']}\n"
             result += f"- **URL**: {mr['web_url']}\n\n"
-        return CallToolResult(content=[TextContent(type="text", text=result)])
+        return CallToolResult(
+            content=[TextContent(type="text", text=result)],
+            isError=False
+        )
     else:
         logging.error(f"GitLab API error {status}: {error_text}")
         return CallToolResult(
-            content=[TextContent(type="text", text=f"GitLab API error: {status} - {error_text}")],
+            content=[TextContent(
+                type="text", 
+                text=f"GitLab API error: {status} - {error_text}"
+            )],
             isError=True
         ) 

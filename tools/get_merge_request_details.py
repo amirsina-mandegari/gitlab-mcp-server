@@ -33,10 +33,16 @@ async def get_merge_request_details(
                 f"({pipeline['web_url']})\n"
             )
         result += f"**Changes**: +{mr['changes_count']} files\n"
-        return CallToolResult(content=[TextContent(type="text", text=result)])
+        return CallToolResult(
+            content=[TextContent(type="text", text=result)],
+            isError=False
+        )
     else:
         logging.error(f"GitLab API error {status}: {error_text}")
         return CallToolResult(
-            content=[TextContent(type="text", text=f"GitLab API error: {status} - {error_text}")],
+            content=[TextContent(
+                type="text", 
+                text=f"GitLab API error: {status} - {error_text}"
+            )],
             isError=True
         ) 
