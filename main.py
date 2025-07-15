@@ -7,9 +7,11 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import (
     Tool, 
-    CallToolResult, 
-    ErrorCode, 
-    McpError
+    TextContent,
+    INTERNAL_ERROR,
+    INVALID_PARAMS,
+    METHOD_NOT_FOUND,
+    JSONRPCError
 )
 from logging_config import configure_logging
 from config import get_gitlab_config
@@ -130,7 +132,7 @@ class GitLabMCPServer:
         @self.server.call_tool()
         async def call_tool(
             name: str, arguments: Dict[str, Any]
-        ) -> CallToolResult:
+        ) -> List[TextContent]:
             logging.info(
                 f"call_tool called: {name} with arguments: {arguments}"
             )
@@ -144,8 +146,8 @@ class GitLabMCPServer:
                     "get_branch_merge_requests"
                 ]:
                     logging.warning(f"Unknown tool called: {name}")
-                    raise McpError(
-                        ErrorCode.METHOD_NOT_FOUND,
+                    raise JSONRPCError(
+                        METHOD_NOT_FOUND,
                         f"Unknown tool: {name}"
                     )
                 
@@ -179,13 +181,13 @@ class GitLabMCPServer:
                         arguments
                     )
                     
-            except McpError:
-                # Re-raise MCP errors as-is
+            except JSONRPCError:
+                # Re-raise JSONRPC errors as-is
                 raise
             except ValueError as e:
                 logging.error(f"Validation error in {name}: {e}")
-                raise McpError(
-                    ErrorCode.INVALID_PARAMS,
+                raise JSONRPCError(
+                    INVALID_PARAMS,
                     f"Invalid parameters: {str(e)}"
                 )
             except Exception as e:
@@ -193,8 +195,8 @@ class GitLabMCPServer:
                     f"Unexpected error in call_tool for {name}: {e}", 
                     exc_info=True
                 )
-                raise McpError(
-                    ErrorCode.INTERNAL_ERROR,
+                raise JSONRPCError(
+                    INTERNAL_ERROR,
                     f"Internal server error: {str(e)}"
                 )
 

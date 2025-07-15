@@ -109,6 +109,7 @@ cython_debug/
 # Environment variables
 .env
 .env.*
+!.env.example
 
 # MCP/AI logs
 *.log

@@ -5,6 +5,7 @@ import asyncio
 import sys
 from tools.list_merge_requests import list_merge_requests
 from tools.get_merge_request_details import get_merge_request_details
+from tools.get_merge_request_reviews import get_merge_request_reviews
 from mcp.types import CallToolResult
 
 # Load environment variables
@@ -47,6 +48,23 @@ async def test_get_merge_request_details():
     print("=" * 50)
 
 
+async def test_get_merge_request_reviews():
+    """Test get_merge_request_reviews tool."""
+    print("Testing get_merge_request_reviews...")
+    args = {"merge_request_iid": 1047}
+    result = await get_merge_request_reviews(
+        GITLAB_URL, PROJECT_ID, ACCESS_TOKEN, args
+    )
+    print(f"Result type: {type(result)}")
+    print(f"Is CallToolResult: {isinstance(result, CallToolResult)}")
+    if isinstance(result, CallToolResult):
+        print(f"isError: {result.isError}")
+        print(f"Content type: {type(result.content)}")
+        if result.content:
+            print(f"Full content: {result.content[0].text}")
+    print("=" * 50)
+
+
 async def main():
     """Run all tests."""
     if not ACCESS_TOKEN:
@@ -55,6 +73,7 @@ async def main():
     
     await test_list_merge_requests()
     await test_get_merge_request_details()
+    await test_get_merge_request_reviews()
 
 
 if __name__ == "__main__":
