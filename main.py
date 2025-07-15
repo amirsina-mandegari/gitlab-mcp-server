@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
 import os
-import aiohttp
 import logging
 from typing import Any, Dict, List
 from mcp.server import Server
@@ -20,26 +19,25 @@ class GitLabMCPServer:
         configure_logging()
         logging.info("Initializing GitLabMCPServer")
         self.server = Server("gitlab-mcp-server")
-        
         # Get environment variables
         self.gitlab_url = os.getenv("GITLAB_URL", "https://gitlab.com")
         self.project_id = os.getenv("GITLAB_PROJECT_ID")
         self.access_token = os.getenv("GITLAB_ACCESS_TOKEN")
-        
         if not self.project_id or not self.access_token:
-            logging.error("Missing required environment variables: GITLAB_PROJECT_ID or GITLAB_ACCESS_TOKEN")
-            raise ValueError("GITLAB_PROJECT_ID and GITLAB_ACCESS_TOKEN environment variables are required")
-        
+            logging.error(
+                "Missing required environment variables: "
+                "GITLAB_PROJECT_ID or GITLAB_ACCESS_TOKEN"
+            )
+            raise ValueError(
+                "GITLAB_PROJECT_ID and GITLAB_ACCESS_TOKEN environment variables are required"
+            )
         self.headers = {
             "Private-Token": self.access_token,
             "Content-Type": "application/json"
         }
-        
         self.setup_handlers()
-    
+
     def setup_handlers(self):
-        """Set up the MCP server handlers"""
-        
         @self.server.list_tools()
         async def list_tools() -> List[Tool]:
             logging.info("list_tools called")
@@ -58,7 +56,9 @@ class GitLabMCPServer:
                             },
                             "target_branch": {
                                 "type": "string",
-                                "description": "Filter by target branch (optional)"
+                                "description": (
+                                    "Filter by target branch (optional)"
+                                )
                             },
                             "limit": {
                                 "type": "integer",
@@ -70,13 +70,17 @@ class GitLabMCPServer:
                 ),
                 Tool(
                     name="get_merge_request_reviews",
-                    description="Get reviews and discussions for a specific merge request",
+                    description=(
+                        "Get reviews and discussions for a specific merge request"
+                    ),
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "merge_request_iid": {
                                 "type": "integer",
-                                "description": "Internal ID of the merge request"
+                                "description": (
+                                    "Internal ID of the merge request"
+                                )
                             }
                         },
                         "required": ["merge_request_iid"]
@@ -84,13 +88,17 @@ class GitLabMCPServer:
                 ),
                 Tool(
                     name="get_merge_request_details",
-                    description="Get detailed information about a specific merge request",
+                    description=(
+                        "Get detailed information about a specific merge request"
+                    ),
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "merge_request_iid": {
                                 "type": "integer",
-                                "description": "Internal ID of the merge request"
+                                "description": (
+                                    "Internal ID of the merge request"
+                                )
                             }
                         },
                         "required": ["merge_request_iid"]
@@ -111,34 +119,57 @@ class GitLabMCPServer:
                     }
                 )
             ]
-        
+
         @self.server.call_tool()
-        async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
-            logging.info(f"call_tool called: {name} with arguments: {arguments}")
+        async def call_tool(
+            name: str, arguments: Dict[str, Any]
+        ) -> CallToolResult:
+            logging.info(
+                f"call_tool called: {name} with arguments: {arguments}"
+            )
             try:
                 if name == "list_merge_requests":
-                    return await list_merge_requests(self.gitlab_url, self.project_id, self.access_token, arguments)
+                    return await list_merge_requests(
+                        self.gitlab_url, self.project_id, self.access_token, arguments
+                    )
                 elif name == "get_merge_request_reviews":
-                    return await get_merge_request_reviews(self.gitlab_url, self.project_id, self.access_token, arguments)
+                    return await get_merge_request_reviews(
+                        self.gitlab_url, self.project_id, self.access_token, arguments
+                    )
                 elif name == "get_merge_request_details":
-                    return await get_merge_request_details(self.gitlab_url, self.project_id, self.access_token, arguments)
+                    return await get_merge_request_details(
+                        self.gitlab_url, self.project_id, self.access_token, arguments
+                    )
                 elif name == "get_branch_merge_requests":
-                    return await get_branch_merge_requests(self.gitlab_url, self.project_id, self.access_token, arguments)
+                    return await get_branch_merge_requests(
+                        self.gitlab_url, self.project_id, self.access_token, arguments
+                    )
                 else:
                     logging.warning(f"Unknown tool called: {name}")
                     return CallToolResult(
-                        content=[TextContent(type="text", text=f"Unknown tool: {name}")],
+                        content=[
+                            TextContent(
+                                type="text",
+                                text=f"Unknown tool: {name}"
+                            )
+                        ],
                         isError=True
                     )
             except Exception as e:
-                logging.error(f"Exception in call_tool for {name}: {e}", exc_info=True)
+                logging.error(
+                    f"Exception in call_tool for {name}: {e}", exc_info=True
+                )
                 return CallToolResult(
-                    content=[TextContent(type="text", text=f"Error: {str(e)}")],
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=f"Error: {str(e)}"
+                        )
+                    ],
                     isError=True
                 )
-    
+
     async def run(self):
-        """Run the MCP server"""
         logging.info("Starting MCP stdio server")
         async with stdio_server() as (read_stream, write_stream):
             await self.server.run(
