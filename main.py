@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
-import os
+from decouple import config
 import logging
 from typing import Any, Dict, List
 from mcp.server import Server
@@ -20,9 +20,9 @@ class GitLabMCPServer:
         logging.info("Initializing GitLabMCPServer")
         self.server = Server("gitlab-mcp-server")
         # Get environment variables
-        self.gitlab_url = os.getenv("GITLAB_URL", "https://gitlab.com")
-        self.project_id = os.getenv("GITLAB_PROJECT_ID")
-        self.access_token = os.getenv("GITLAB_ACCESS_TOKEN")
+        self.gitlab_url = config("GITLAB_URL", default="https://gitlab.com")
+        self.project_id = config("GITLAB_PROJECT_ID", default=None)
+        self.access_token = config("GITLAB_ACCESS_TOKEN", default=None)
         if not self.project_id or not self.access_token:
             logging.error(
                 "Missing required environment variables: "

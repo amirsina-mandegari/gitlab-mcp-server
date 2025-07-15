@@ -22,6 +22,7 @@ pydantic-settings==2.10.1
 pydantic_core==2.33.2
 python-dotenv==1.1.1
 python-multipart==0.0.20
+python-decouple
 referencing==0.36.2
 rpds-py==0.26.0
 setuptools==62.1.0
