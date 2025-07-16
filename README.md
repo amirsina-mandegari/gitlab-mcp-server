@@ -29,6 +29,29 @@ pip install -r requirements.txt
 
 ### 2. Environment Configuration
 
+The GitLab MCP server supports two ways to provide configuration:
+
+#### Option 1: Project-Specific Configuration (Recommended)
+
+Create a `gitlab-mcp.env` file in your project directory with your GitLab details:
+
+```env
+# Required Environment Variables
+GITLAB_PROJECT_ID=your-project-id
+GITLAB_ACCESS_TOKEN=your-access-token
+
+# Optional Environment Variables
+GITLAB_URL=https://gitlab.com
+```
+
+**Benefits:**
+
+- Each project can have its own GitLab configuration
+- Secrets stay out of version control (add `gitlab-mcp.env` to `.gitignore`)
+- Works seamlessly with Cursor's project-level MCP configuration
+
+#### Option 2: Global Configuration
+
 Copy the example environment file and configure it with your GitLab details:
 
 ```bash
@@ -57,6 +80,32 @@ SERVER_VERSION=1.0.0
 - `GITLAB_URL`: GitLab instance URL (optional, defaults to https://gitlab.com)
 - `SERVER_NAME`: MCP server name (optional, defaults to gitlab-mcp-server)
 - `SERVER_VERSION`: MCP server version (optional, defaults to 1.0.0)
+
+#### How Environment Loading Works
+
+The `run-mcp.sh` script automatically detects and loads configuration:
+
+1. **Project-Specific**: First looks for `gitlab-mcp.env` in the current working directory
+2. **Global Fallback**: Falls back to system environment variables if no project file is found
+3. **Logging**: Shows which configuration method is being used
+
+**Example Output:**
+
+```
+Loading environment variables from /path/to/project/gitlab-mcp.env
+```
+
+Or:
+
+```
+No gitlab-mcp.env found in /path/to/project, using existing environment variables
+```
+
+This approach allows you to:
+
+- Keep different GitLab configurations for different projects
+- Keep secrets out of version control
+- Share MCP configurations via Git while keeping tokens private
 
 ### 3. GitLab Access Token Setup
 
@@ -96,9 +145,34 @@ python main.py
 
 To use this MCP server with Cursor, you need to configure it in your MCP settings.
 
-#### MCP Configuration JSON
+#### Project-Level Configuration (Recommended)
 
-**Recommended: Using the Shell Script**
+Create a `.cursor/mcp.json` file in your project directory:
+
+```json
+{
+  "mcpServers": {
+    "gitlab-mcp": {
+      "command": "/path/to/gitlab-mcp-server/run-mcp.sh",
+      "cwd": "/path/to/your-project",
+      "env": {
+        "SERVER_NAME": "gitlab-mcp",
+        "SERVER_VERSION": "1.0.0"
+      }
+    }
+  }
+}
+```
+
+**Important Notes:**
+
+- Replace `/path/to/gitlab-mcp-server` with the actual path to this GitLab MCP server
+- Replace `/path/to/your-project` with the path to your project directory (where `gitlab-mcp.env` is located)
+- Make sure the shell script is executable: `chmod +x run-mcp.sh`
+- The `cwd` parameter tells the script where to look for the `gitlab-mcp.env` file
+- The shell script handles virtual environment activation automatically
+
+#### Global Configuration
 
 Add the following configuration to your MCP client settings (usually in `~/.cursor/mcp_settings.json` or similar):
 
@@ -249,10 +323,12 @@ gitlab-mcp-server/
 
 ## Security Considerations
 
-- Never commit your `.env` file or expose your access token
+- Never commit your `.env` or `gitlab-mcp.env` files or expose your access token
+- Add `gitlab-mcp.env` and `.env` to your `.gitignore` file
 - Use environment variables for sensitive configuration
 - Regularly rotate your GitLab access tokens
 - Consider using project-specific access tokens with minimal required permissions
+- When using project-specific configurations, each project can have its own token with restricted permissions
 
 ## License
 
