@@ -1,351 +1,137 @@
 # GitLab MCP Server
 
-A Model Context Protocol (MCP) server that provides GitLab integration for AI assistants. This server allows AI models to interact with GitLab projects, retrieve merge request information, reviews, and branch details.
+Connect your AI assistant to GitLab. Ask questions like *"List open merge requests"*, *"Show me reviews for MR #123"*, or *"Find merge requests for the feature branch"* directly in your chat.
 
-## Features
+## Table of Contents
 
-- **List Merge Requests**: Get merge requests filtered by state, target branch, and limit
-- **Get Merge Request Details**: Retrieve detailed information about specific merge requests
-- **Get Merge Request Reviews**: Access reviews and discussions for merge requests
-- **Get Branch Merge Requests**: Find merge requests associated with specific branches
+- [Quick Setup](#quick-setup)
+- [What You Can Do](#what-you-can-do)
+- [Configuration Options](#configuration-options)
+- [Troubleshooting](#troubleshooting)
+- [Tool Reference](#tool-reference)
+- [Development](#development)
+- [Security Notes](#security-notes)
+- [Support](#support)
 
-## Prerequisites
+## Quick Setup
 
-- Python 3.8+
-- GitLab account with API access
-- GitLab Personal Access Token with appropriate permissions
+1. **Install the server:**
+   ```bash
+   git clone https://github.com/amirsina-mandegari/gitlab-mcp-server.git
+   cd gitlab-mcp-server
+   python -m venv .venv && source .venv/bin/activate
+   pip install -r requirements.txt
+   chmod +x run-mcp.sh
+   ```
 
-## Setup
+2. **Get your GitLab token:**
+   - Go to GitLab → Settings → Access Tokens
+   - Create token with **`read_api`** scope
+   - Copy the token
 
-### 1. Clone and Install Dependencies
+3. **Configure your project:**
+   In your project directory, create `gitlab-mcp.env`:
+   ```env
+   GITLAB_PROJECT_ID=12345
+   GITLAB_ACCESS_TOKEN=glpat-xxxxxxxxxxxxxxxxxxxx
+   GITLAB_URL=https://gitlab.com
+   ```
 
+4. **Connect to Cursor:**
+   Create `.cursor/mcp.json` in your project:
+   ```json
+   {
+     "mcpServers": {
+       "gitlab-mcp": {
+         "command": "/path/to/gitlab-mcp-server/run-mcp.sh",
+         "cwd": "/path/to/your-project"
+       }
+     }
+   }
+   ```
+
+5. **Restart Cursor** and start asking GitLab questions!
+
+## What You Can Do
+
+Once connected, try these commands in your chat:
+
+- *"List open merge requests"*
+- *"Show me details for merge request 456"*
+- *"Get reviews and discussions for MR #123"*
+- *"Find merge requests for the feature/auth-improvements branch"*
+- *"Show me closed merge requests targeting main"*
+
+## Configuration Options
+
+### Project-Level (Recommended)
+Each project gets its own `gitlab-mcp.env` file with its own GitLab configuration. Keep tokens out of version control.
+
+### Global Configuration
+Set environment variables system-wide instead of per-project:
 ```bash
-git clone <repository-url>
-cd gitlab-mcp-server
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+export GITLAB_PROJECT_ID=12345
+export GITLAB_ACCESS_TOKEN=glpat-xxxxxxxxxxxxxxxxxxxx
+export GITLAB_URL=https://gitlab.com
 ```
 
-### 2. Environment Configuration
-
-The GitLab MCP server supports two ways to provide configuration:
-
-#### Option 1: Project-Specific Configuration (Recommended)
-
-Create a `gitlab-mcp.env` file in your project directory with your GitLab details:
-
-```env
-# Required Environment Variables
-GITLAB_PROJECT_ID=your-project-id
-GITLAB_ACCESS_TOKEN=your-access-token
-
-# Optional Environment Variables
-GITLAB_URL=https://gitlab.com
-```
-
-**Benefits:**
-
-- Each project can have its own GitLab configuration
-- Secrets stay out of version control (add `gitlab-mcp.env` to `.gitignore`)
-- Works seamlessly with Cursor's project-level MCP configuration
-
-#### Option 2: Global Configuration
-
-Copy the example environment file and configure it with your GitLab details:
-
-```bash
-cp .env.example .env
-```
-
-Then edit the `.env` file with your configuration:
-
-```env
-# Required Environment Variables
-GITLAB_PROJECT_ID=your-project-id
-GITLAB_ACCESS_TOKEN=your-access-token
-
-# Optional Environment Variables
-GITLAB_URL=https://gitlab.com
-SERVER_NAME=gitlab-mcp-server
-SERVER_VERSION=1.0.0
-```
-
-**Important:** Replace `your-project-id` and `your-access-token` with your actual GitLab values.
-
-**Environment Variables Explained:**
-
-- `GITLAB_PROJECT_ID`: Your GitLab project ID (required)
-- `GITLAB_ACCESS_TOKEN`: Your GitLab Personal Access Token (required)
-- `GITLAB_URL`: GitLab instance URL (optional, defaults to https://gitlab.com)
-- `SERVER_NAME`: MCP server name (optional, defaults to gitlab-mcp-server)
-- `SERVER_VERSION`: MCP server version (optional, defaults to 1.0.0)
-
-#### How Environment Loading Works
-
-The `run-mcp.sh` script automatically detects and loads configuration:
-
-1. **Project-Specific**: First looks for `gitlab-mcp.env` in the current working directory
-2. **Global Fallback**: Falls back to system environment variables if no project file is found
-3. **Logging**: Shows which configuration method is being used
-
-**Example Output:**
-
-```
-Loading environment variables from /path/to/project/gitlab-mcp.env
-```
-
-Or:
-
-```
-No gitlab-mcp.env found in /path/to/project, using existing environment variables
-```
-
-This approach allows you to:
-
-- Keep different GitLab configurations for different projects
-- Keep secrets out of version control
-- Share MCP configurations via Git while keeping tokens private
-
-### 3. GitLab Access Token Setup
-
-1. Go to your GitLab instance → Settings → Access Tokens
-2. Create a new token with the following scopes:
-   - `api` - Access the authenticated user's API
-   - `read_api` - Read access to the API
-   - `read_repository` - Read access to repository
-3. Copy the token and add it to your `.env` file
-
-### 4. Find Your Project ID
-
-You can find your GitLab project ID in:
-
-- Project Settings → General → Project ID
-- Or in the URL: `https://gitlab.com/username/project` (it's the numeric ID)
-
-## Usage
-
-### Local Development
-
-Run the server locally:
-
-```bash
-chmod +x run-mcp.sh
-./run-mcp.sh
-```
-
-Or run directly with Python:
-
-```bash
-source .venv/bin/activate
-python main.py
-```
-
-### Integration with Cursor
-
-To use this MCP server with Cursor, you need to configure it in your MCP settings.
-
-#### Project-Level Configuration (Recommended)
-
-Create a `.cursor/mcp.json` file in your project directory:
-
-```json
-{
-  "mcpServers": {
-    "gitlab-mcp": {
-      "command": "/path/to/gitlab-mcp-server/run-mcp.sh",
-      "cwd": "/path/to/your-project",
-      "env": {
-        "SERVER_NAME": "gitlab-mcp",
-        "SERVER_VERSION": "1.0.0"
-      }
-    }
-  }
-}
-```
-
-**Important Notes:**
-
-- Replace `/path/to/gitlab-mcp-server` with the actual path to this GitLab MCP server
-- Replace `/path/to/your-project` with the path to your project directory (where `gitlab-mcp.env` is located)
-- Make sure the shell script is executable: `chmod +x run-mcp.sh`
-- The `cwd` parameter tells the script where to look for the `gitlab-mcp.env` file
-- The shell script handles virtual environment activation automatically
-
-#### Global Configuration
-
-Add the following configuration to your MCP client settings (usually in `~/.cursor/mcp_settings.json` or similar):
-
-```json
-{
-  "mcpServers": {
-    "gitlab-mcp": {
-      "command": "/path/to/gitlab-mcp-server/run-mcp.sh",
-      "cwd": "/path/to/gitlab-mcp-server"
-    }
-  }
-}
-```
-
-**Important Notes:**
-
-- Replace `/path/to/gitlab-mcp-server` with the actual path to your project
-- Make sure the shell script is executable: `chmod +x run-mcp.sh`
-- The shell script handles virtual environment activation automatically
-
-#### Alternative: Direct Python Execution
-
-If you need to run Python directly (not recommended due to venv requirements):
-
-```json
-{
-  "mcpServers": {
-    "gitlab-mcp": {
-      "command": "python",
-      "args": ["/path/to/gitlab-mcp-server/main.py"],
-      "cwd": "/path/to/gitlab-mcp-server",
-      "env": {
-        "GITLAB_PROJECT_ID": "your-project-id",
-        "GITLAB_ACCESS_TOKEN": "your-access-token",
-        "GITLAB_URL": "https://gitlab.com"
-      }
-    }
-  }
-}
-```
-
-**Note:** This approach requires that you manually ensure the correct Python environment is available in your PATH.
-
-### Cursor Setup Steps
-
-1. **Install Cursor**: Download and install Cursor from the official website
-2. **Configure MCP**: Add the configuration above to your MCP settings
-3. **Restart Cursor**: Restart Cursor to load the new MCP server
-4. **Verify Connection**: Check that the GitLab MCP server is listed in your available tools
-
-## Available Tools
-
-### 1. `list_merge_requests`
-
-List merge requests for the GitLab project.
-
-**Parameters:**
-
-- `state` (optional): Filter by state (`opened`, `closed`, `merged`, `all`) - default: `opened`
-- `target_branch` (optional): Filter by target branch
-- `limit` (optional): Maximum number of results (1-100) - default: 10
-
-### 2. `get_merge_request_details`
-
-Get detailed information about a specific merge request.
-
-**Parameters:**
-
-- `merge_request_iid` (required): Internal ID of the merge request
-
-### 3. `get_merge_request_reviews`
-
-Get reviews and discussions for a specific merge request.
-
-**Parameters:**
-
-- `merge_request_iid` (required): Internal ID of the merge request
-
-### 4. `get_branch_merge_requests`
-
-Find merge requests for a specific branch.
-
-**Parameters:**
-
-- `branch_name` (required): Name of the branch
-
-## Example Usage in Cursor
-
-Once configured, you can use commands like:
-
-```
-"List open merge requests"
-"Get details for merge request 123"
-"Show reviews for MR 456"
-"Find merge requests for feature/new-login branch"
-```
+### Find Your Project ID
+- Go to your GitLab project → Settings → General → Project ID
+- Or check the URL: `https://gitlab.com/username/project` (use the numeric ID)
 
 ## Troubleshooting
 
-### Common Issues
+**Authentication Error**: Verify your token has `read_api` permissions and is not expired.
 
-1. **Authentication Error**: Verify your GitLab access token has the correct permissions
-2. **Project Not Found**: Check your project ID is correct
-3. **Connection Issues**: Ensure your GitLab URL is accessible
-4. **Python Path Issues**: Make sure the Python path in MCP config points to your virtual environment
+**Project Not Found**: Double-check your project ID is correct (it's a number, not the project name).
 
-### Logging
+**Connection Issues**: Make sure your GitLab URL is accessible and correct.
 
-Logs are written to `/tmp/gitlab-mcp-server.log` when using the shell script, or to stdout when running directly.
+**Script Not Found**: Ensure the path in your MCP config points to the actual server location and the script is executable.
 
-To enable debug logging, modify `logging_config.py` to set the log level to `DEBUG`.
+## Tool Reference
 
-### Testing
-
-Run the test suite:
-
-```bash
-python test_tools.py
-```
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_merge_requests` | List merge requests | `state`, `target_branch`, `limit` |
+| `get_merge_request_details` | Get MR details | `merge_request_iid` |
+| `get_merge_request_reviews` | Get reviews/discussions | `merge_request_iid` |
+| `get_branch_merge_requests` | Find MRs for branch | `branch_name` |
 
 ## Development
 
 ### Project Structure
-
 ```
 gitlab-mcp-server/
-├── main.py              # Main MCP server entry point
+├── main.py              # MCP server entry point
 ├── config.py            # Configuration management
 ├── gitlab_api.py        # GitLab API client
-├── logging_config.py    # Logging configuration
-├── requirements.txt     # Python dependencies
-├── run-mcp.sh          # Shell script to run the server
-├── test_tools.py       # Test suite
-├── .env.example        # Example environment configuration
-└── tools/              # Individual tool implementations
-    ├── list_merge_requests.py
-    ├── get_merge_request_details.py
-    ├── get_merge_request_reviews.py
-    └── get_branch_merge_requests.py
+├── run-mcp.sh          # Launch script
+└── tools/              # Tool implementations
 ```
 
-### Adding New Tools
+### Adding Tools
+1. Create new file in `tools/`
+2. Add to `list_tools()` in `main.py`
+3. Add handler to `call_tool()` in `main.py`
 
-1. Create a new file in the `tools/` directory
-2. Implement the tool function following the existing pattern
-3. Add the tool to the `list_tools()` function in `main.py`
-4. Add the tool handler to the `call_tool()` function in `main.py`
+### Testing
+```bash
+python test_tools.py
+```
 
-## Security Considerations
+## Security Notes
 
-- Never commit your `.env` or `gitlab-mcp.env` files or expose your access token
-- Add `gitlab-mcp.env` and `.env` to your `.gitignore` file
-- Use environment variables for sensitive configuration
-- Regularly rotate your GitLab access tokens
-- Consider using project-specific access tokens with minimal required permissions
-- When using project-specific configurations, each project can have its own token with restricted permissions
-
-## License
-
-This project is licensed under the MIT License. See LICENSE file for details.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+- Add `gitlab-mcp.env` to your `.gitignore`
+- Never commit access tokens
+- Use project-specific tokens with minimal permissions
+- Rotate tokens regularly
 
 ## Support
 
-For issues and questions:
+- Check [GitLab API documentation](https://docs.gitlab.com/ee/api/)
+- Open issues at [github.com/amirsina-mandegari/gitlab-mcp-server](https://github.com/amirsina-mandegari/gitlab-mcp-server)
 
-1. Check the troubleshooting section above
-2. Review the GitLab API documentation
-3. Open an issue in the project repository
+## License
+
+MIT License - see LICENSE file for details.
