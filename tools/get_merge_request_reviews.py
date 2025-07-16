@@ -58,7 +58,8 @@ def get_approval_summary(approvals):
             plural = 's' if approvals_left > 1 else ''
             status = f"⏳ {approvals_left} approval{plural} needed"
         result += f"**Status**: {status}\n"
-        result += f"**Required**: {approvals_required} | **Received**: {len(approved_by)}\n\n"
+        received_count = len(approved_by)
+        result += f"**Required**: {approvals_required} | **Received**: {received_count}\n\n"
     elif not approved_by:
         result += "📝 No approvals yet\n\n"
     
@@ -93,8 +94,10 @@ def format_discussion_thread(discussion):
     result = ""
     thread_resolved = discussion.get('resolved', False)
     thread_icon = "✅" if thread_resolved else "🟡"
+    discussion_id = discussion.get('id', 'unknown')
     
     result += f"### {thread_icon} Discussion Thread\n"
+    result += f"**Discussion ID**: `{discussion_id}`\n"
     if thread_resolved:
         result += "*Resolved*\n"
     else:
@@ -107,9 +110,11 @@ def format_discussion_thread(discussion):
         author_name = note['author']['name']
         author_username = note['author']['username']
         note_icon = get_review_type_icon(note)
+        note_id = note.get('id', 'unknown')
         
         result += f"\n{note_icon} **{author_name}** (@{author_username})\n"
-        result += f"*{format_date(note['created_at'])}*\n"
+        timestamp = format_date(note['created_at'])
+        result += f"*{timestamp}* | Note ID: `{note_id}`\n"
         
         # Add file/line context for code comments
         if note.get('position'):

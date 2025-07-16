@@ -119,6 +119,59 @@ async def get_merge_request_details(
             )
 
 
+async def create_merge_request_discussion(
+    gitlab_url, project_id, access_token, mr_iid, body
+):
+    """Create a new discussion thread on a merge request"""
+    url = (f"{gitlab_url}/api/v4/projects/{project_id}/"
+           f"merge_requests/{mr_iid}/discussions")
+    headers = _headers(access_token)
+    data = {"body": body}
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            return (
+                response.status,
+                await response.json(),
+                await response.text()
+            )
+
+
+async def reply_to_merge_request_discussion(
+    gitlab_url, project_id, access_token, mr_iid, discussion_id, body
+):
+    """Reply to an existing discussion thread on a merge request"""
+    url = (f"{gitlab_url}/api/v4/projects/{project_id}/"
+           f"merge_requests/{mr_iid}/discussions/{discussion_id}/notes")
+    headers = _headers(access_token)
+    data = {"body": body}
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            return (
+                response.status,
+                await response.json(),
+                await response.text()
+            )
+
+
+async def resolve_merge_request_discussion(
+    gitlab_url, project_id, access_token, mr_iid, discussion_id, resolved=True
+):
+    """Resolve or unresolve a discussion thread on a merge request"""
+    url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}/discussions/{discussion_id}"
+    headers = _headers(access_token)
+    data = {"resolved": resolved}
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.put(url, headers=headers, json=data) as response:
+            return (
+                response.status,
+                await response.json(),
+                await response.text()
+            )
+
+
 async def get_branch_merge_requests(
     gitlab_url, project_id, access_token, params
 ):
