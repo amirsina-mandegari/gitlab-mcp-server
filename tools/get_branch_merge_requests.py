@@ -30,19 +30,21 @@ async def get_enhanced_mr_data(gitlab_url, project_id, access_token, mr_iid):
             pipeline_task, changes_task, return_exceptions=True
         )
         
-        # Handle pipeline result
         if isinstance(pipeline_result, Exception):
             pipeline_data = None
-            logging.warning(f"Pipeline fetch failed for MR {mr_iid}: {pipeline_result}")
+            logging.warning(
+                f"Pipeline fetch failed for MR {mr_iid}: {pipeline_result}"
+            )
         else:
             pipeline_status, pipeline_data, _ = pipeline_result
             if pipeline_status != 200:
                 pipeline_data = None
         
-        # Handle changes result
         if isinstance(changes_result, Exception):
             changes_data = None
-            logging.warning(f"Changes fetch failed for MR {mr_iid}: {changes_result}")
+            logging.warning(
+                f"Changes fetch failed for MR {mr_iid}: {changes_result}"
+            )
         else:
             changes_status, changes_data, _ = changes_result
             if changes_status != 200:
@@ -51,7 +53,9 @@ async def get_enhanced_mr_data(gitlab_url, project_id, access_token, mr_iid):
         return pipeline_data, changes_data
         
     except Exception as e:
-        logging.warning(f"Error fetching enhanced data for MR {mr_iid}: {e}")
+        logging.warning(
+            f"Error fetching enhanced data for MR {mr_iid}: {e}"
+        )
         return None, None
 
 
@@ -61,18 +65,8 @@ async def get_branch_merge_requests(
     logging.info(f"get_branch_merge_requests called with args: {args}")
     branch_name = args["branch_name"]
     
-    # Prepare parameters for API call
-    params = {
-        "source_branch": branch_name,
-        "state": "all",
-        "per_page": 20,
-        "order_by": "updated_at",
-        "sort": "desc"
-    }
-    
-    # Get basic MR data
     status, data, error = await api_get_branch_merge_requests(
-        gitlab_url, project_id, access_token, params
+        gitlab_url, project_id, access_token, branch_name
     )
     
     if status != 200:
@@ -83,16 +77,20 @@ async def get_branch_merge_requests(
             f"Error fetching branch merge requests: {status} - {error}"
         )
     
-    # Start building enhanced response
     result = f"# 🌿 Merge Requests for branch: **{branch_name}**\n"
-    result += f"*Found {len(data)} merge request{'s' if len(data) != 1 else ''}*\n\n"
+    result += (
+        f"*Found {len(data)} merge request"
+        f"{'s' if len(data) != 1 else ''}*\n\n"
+    )
     
     if not data:
         result += "📭 No merge requests found for this branch.\n"
-        result += "💡 **Tip**: Create a merge request to start the review process.\n"
+        result += (
+            "💡 **Tip**: Create a merge request to start the "
+            "review process.\n"
+        )
         return [TextContent(type="text", text=result)]
     
-    # Get enhanced data for all MRs in parallel
     enhanced_data_tasks = []
     for mr in data:
         task = get_enhanced_mr_data(
@@ -106,11 +104,9 @@ async def get_branch_merge_requests(
         logging.warning(f"Error in parallel enhanced data fetch: {e}")
         enhanced_results = [(None, None)] * len(data)
     
-    # Process and format each MR with enhanced data
     for i, mr in enumerate(data):
         pipeline_data, changes_data = enhanced_results[i]
         
-        # MR Header with visual indicators
         if mr['state'] == 'merged':
             state_icon = "✅"
         elif mr['state'] == 'opened':
@@ -119,64 +115,51 @@ async def get_branch_merge_requests(
             state_icon = "❌"
         result += f"## {state_icon} !{mr['iid']}: {mr['title']}\n"
         
-        # Author info
         author_name = mr['author']['name']
         author_username = mr['author']['username']
         result += f"**👤 Author**: {author_name} (@{author_username})\n"
         
-        # Status with explanation
         result += f"**📊 Status**: {mr['state']} "
         result += f"({get_state_explanation(mr['state'])})\n"
         
-        # Priority and readiness analysis
         priority = get_mr_priority(mr)
         readiness = analyze_mr_readiness(mr, pipeline_data)
         result += f"**🏷️ Priority**: {priority}\n"
         result += f"**🚦 Merge Status**: {readiness}\n"
         
-        # Dates with better formatting
         result += f"**📅 Created**: {format_date(mr['created_at'])}\n"
         result += f"**🔄 Updated**: {format_date(mr['updated_at'])}\n"
         
-        # Branch information
         source_branch = mr['source_branch']
         target_branch = mr['target_branch']
         result += f"**🌿 Branches**: `{source_branch}` → `{target_branch}`\n"
         
-        # Pipeline status with enhanced data
         if pipeline_data:
             pipeline_status = pipeline_data.get('status')
             pipeline_icon = get_pipeline_status_icon(pipeline_status)
             result += f"**🔧 Pipeline**: {pipeline_icon} {pipeline_status}\n"
             
-            # Add pipeline details if available
             if pipeline_data.get('web_url'):
                 result += f"  *[View Pipeline]({pipeline_data['web_url']})*\n"
         elif mr.get('pipeline'):
-            # Fallback to basic pipeline info from MR data
             pipeline_status = mr['pipeline'].get('status')
             pipeline_icon = get_pipeline_status_icon(pipeline_status)
             result += f"**🔧 Pipeline**: {pipeline_icon} {pipeline_status or 'unknown'}\n"
         
-        # Changes statistics
         if changes_data:
             change_stats = calculate_change_stats(changes_data)
             result += f"**📈 Changes**: {change_stats}\n"
         
-        # Labels with visual indicators
         if mr.get('labels'):
             labels_str = ', '.join(f"`{label}`" for label in mr['labels'])
             result += f"**🏷️ Labels**: {labels_str}\n"
         
-        # Draft/WIP status
         if mr.get('draft') or mr.get('work_in_progress'):
             result += "**⚠️ Status**: 🚧 Draft/Work in Progress\n"
         
-        # Merge conflicts warning
         if mr.get('has_conflicts'):
             result += "**⚠️ Warning**: 🔥 Has merge conflicts\n"
         
-        # Quick actions
         result += f"**🔗 Actions**: [View MR]({mr['web_url']})"
         if mr['state'] == 'opened':
             result += f" | [Review & Approve]({mr['web_url']})"
@@ -184,10 +167,8 @@ async def get_branch_merge_requests(
         
         result += "\n---\n\n"
     
-    # Add summary section
     result += "## 📊 Summary\n"
     
-    # State breakdown
     state_counts = {}
     for mr in data:
         state = mr['state']
@@ -198,7 +179,6 @@ async def get_branch_merge_requests(
         icon = "✅" if state == 'merged' else "🔄" if state == 'opened' else "❌"
         result += f"  • {icon} {state.title()}: {count}\n"
     
-    # Action items
     result += "\n**🎯 Action Items**:\n"
     opened_mrs = [mr for mr in data if mr['state'] == 'opened']
     

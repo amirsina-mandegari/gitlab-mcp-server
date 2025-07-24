@@ -63,21 +63,17 @@ def analyze_mr_readiness(mr_data, pipeline_data=None, approvals=None):
     """Analyze if MR is ready to merge and what's blocking it"""
     blockers = []
     
-    # Check if draft
     if mr_data.get('draft') or mr_data.get('work_in_progress'):
         blockers.append("🚧 Draft/WIP status")
     
-    # Check merge conflicts
     if mr_data.get('has_conflicts'):
         blockers.append("⚠️ Merge conflicts")
     
-    # Check pipeline status
     if pipeline_data and pipeline_data.get('status') == 'failed':
         blockers.append("❌ Pipeline failed")
     elif pipeline_data and pipeline_data.get('status') == 'running':
         blockers.append("🔄 Pipeline running")
     
-    # Check approvals if available
     if approvals and 'approvals_required' in approvals:
         approved_count = len(approvals.get('approved_by', []))
         required_count = approvals.get('approvals_required', 0)
@@ -85,7 +81,6 @@ def analyze_mr_readiness(mr_data, pipeline_data=None, approvals=None):
             msg = f"👥 Needs approval ({approved_count}/{required_count})"
             blockers.append(msg)
     
-    # Check if mergeable
     if mr_data.get('merge_status') == 'cannot_be_merged':
         blockers.append("🚫 Cannot be merged")
     

@@ -15,14 +15,15 @@ from mcp.types import (
 )
 from logging_config import configure_logging
 from config import get_gitlab_config
-from tools.list_merge_requests import list_merge_requests
-from tools.get_merge_request_reviews import get_merge_request_reviews
-from tools.get_merge_request_details import get_merge_request_details
-from tools.get_branch_merge_requests import get_branch_merge_requests
-from tools.reply_to_review_comment import (
+from tools import (
+    list_merge_requests,
+    get_merge_request_reviews,
+    get_merge_request_details,
+    get_branch_merge_requests,
     reply_to_review_comment,
     create_review_comment,
-    resolve_review_discussion
+    resolve_review_discussion,
+    get_commit_discussions
 )
 
 
@@ -31,7 +32,6 @@ class GitLabMCPServer:
         configure_logging()
         logging.info("Initializing GitLabMCPServer")
         
-        # Load and validate configuration
         self.config = get_gitlab_config()
         
         self.server = Server(self.config['server_name'])
@@ -115,22 +115,6 @@ class GitLabMCPServer:
                 ),
                 Tool(
                     name="get_branch_merge_requests",
-                    description="Find merge requests for a specific branch",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "branch_name": {
-                                "type": "string",
-                                "minLength": 1,
-                                "description": "Name of the branch"
-                            }
-                        },
-                        "required": ["branch_name"],
-                        "additionalProperties": False
-                    }
-                ),
-                Tool(
-                    name="get_branch_merge_requests",
                     description=(
                         "Get all merge requests for a specific branch"
                     ),
@@ -149,7 +133,8 @@ class GitLabMCPServer:
                 Tool(
                     name="reply_to_review_comment",
                     description=(
-                        "Reply to a specific discussion thread in a merge request review"
+                        "Reply to a specific discussion thread in a "
+                        "merge request review"
                     ),
                     inputSchema={
                         "type": "object",
@@ -157,25 +142,32 @@ class GitLabMCPServer:
                             "merge_request_iid": {
                                 "type": "integer",
                                 "minimum": 1,
-                                "description": "Internal ID of the merge request"
+                                "description": (
+                                    "Internal ID of the merge request"
+                                )
                             },
                             "discussion_id": {
                                 "type": "string",
-                                "description": "ID of the discussion thread to reply to"
+                                "description": (
+                                    "ID of the discussion thread to reply to"
+                                )
                             },
                             "body": {
                                 "type": "string",
                                 "description": "Content of the reply comment"
                             }
                         },
-                        "required": ["merge_request_iid", "discussion_id", "body"],
+                        "required": [
+                            "merge_request_iid", "discussion_id", "body"
+                        ],
                         "additionalProperties": False
                     }
                 ),
                 Tool(
                     name="create_review_comment",
                     description=(
-                        "Create a new discussion thread in a merge request review"
+                        "Create a new discussion thread in a "
+                        "merge request review"
                     ),
                     inputSchema={
                         "type": "object",
@@ -183,11 +175,15 @@ class GitLabMCPServer:
                             "merge_request_iid": {
                                 "type": "integer",
                                 "minimum": 1,
-                                "description": "Internal ID of the merge request"
+                                "description": (
+                                    "Internal ID of the merge request"
+                                )
                             },
                             "body": {
                                 "type": "string",
-                                "description": "Content of the new discussion comment"
+                                "description": (
+                                    "Content of the new discussion comment"
+                                )
                             }
                         },
                         "required": ["merge_request_iid", "body"],
@@ -197,7 +193,8 @@ class GitLabMCPServer:
                 Tool(
                     name="resolve_review_discussion",
                     description=(
-                        "Resolve or unresolve a discussion thread in a merge request review"
+                        "Resolve or unresolve a discussion thread in a "
+                        "merge request review"
                     ),
                     inputSchema={
                         "type": "object",
@@ -205,19 +202,48 @@ class GitLabMCPServer:
                             "merge_request_iid": {
                                 "type": "integer",
                                 "minimum": 1,
-                                "description": "Internal ID of the merge request"
+                                "description": (
+                                    "Internal ID of the merge request"
+                                )
                             },
                             "discussion_id": {
                                 "type": "string",
-                                "description": "ID of the discussion thread to resolve/unresolve"
+                                "description": (
+                                    "ID of the discussion thread to "
+                                    "resolve/unresolve"
+                                )
                             },
                             "resolved": {
                                 "type": "boolean",
                                 "default": True,
-                                "description": "Whether to resolve (true) or unresolve (false) the discussion"
+                                "description": (
+                                    "Whether to resolve (true) or unresolve "
+                                    "(false) the discussion"
+                                )
                             }
                         },
                         "required": ["merge_request_iid", "discussion_id"],
+                        "additionalProperties": False
+                    }
+                ),
+                Tool(
+                    name="get_commit_discussions",
+                    description=(
+                        "Get discussions and comments on commits within a "
+                        "specific merge request"
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "merge_request_iid": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": (
+                                    "Internal ID of the merge request"
+                                )
+                            }
+                        },
+                        "required": ["merge_request_iid"],
                         "additionalProperties": False
                     }
                 )
@@ -235,7 +261,6 @@ class GitLabMCPServer:
             )
             
             try:
-                # Validate tool name
                 if name not in [
                     "list_merge_requests", 
                     "get_merge_request_reviews",
@@ -243,7 +268,8 @@ class GitLabMCPServer:
                     "get_branch_merge_requests",
                     "reply_to_review_comment",
                     "create_review_comment",
-                    "resolve_review_discussion"
+                    "resolve_review_discussion",
+                    "get_commit_discussions"
                 ]:
                     logging.warning(f"Unknown tool called: {name}")
                     raise JSONRPCError(
@@ -251,7 +277,6 @@ class GitLabMCPServer:
                         f"Unknown tool: {name}"
                     )
                 
-                # Route to appropriate tool handler
                 if name == "list_merge_requests":
                     return await list_merge_requests(
                         self.config['gitlab_url'], 
@@ -301,9 +326,15 @@ class GitLabMCPServer:
                         self.config['access_token'], 
                         arguments
                     )
+                elif name == "get_commit_discussions":
+                    return await get_commit_discussions(
+                        self.config['gitlab_url'], 
+                        self.config['project_id'], 
+                        self.config['access_token'], 
+                        arguments
+                    )
                     
             except JSONRPCError:
-                # Re-raise JSONRPC errors as-is
                 raise
             except ValueError as e:
                 logging.error(f"Validation error in {name}: {e}")

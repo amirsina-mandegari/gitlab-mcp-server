@@ -30,7 +30,6 @@ async def get_enhanced_mr_data(gitlab_url, project_id, access_token, mr_iid):
             pipeline_task, changes_task, return_exceptions=True
         )
         
-        # Handle pipeline result
         if isinstance(pipeline_result, Exception):
             pipeline_data = None
             logging.warning(f"Pipeline fetch failed for MR {mr_iid}: {pipeline_result}")
@@ -39,7 +38,6 @@ async def get_enhanced_mr_data(gitlab_url, project_id, access_token, mr_iid):
             if pipeline_status != 200:
                 pipeline_data = None
         
-        # Handle changes result
         if isinstance(changes_result, Exception):
             changes_data = None
             logging.warning(f"Changes fetch failed for MR {mr_iid}: {changes_result}")
@@ -58,7 +56,6 @@ async def get_enhanced_mr_data(gitlab_url, project_id, access_token, mr_iid):
 async def list_merge_requests(gitlab_url, project_id, access_token, args):
     logging.info(f"list_merge_requests called with args: {args}")
     
-    # Prepare parameters for API call
     state = args.get("state", "opened")
     target_branch = args.get("target_branch")
     limit = args.get("limit", 10)
@@ -73,7 +70,6 @@ async def list_merge_requests(gitlab_url, project_id, access_token, args):
     if target_branch:
         params["target_branch"] = target_branch
     
-    # Get basic MR data
     status, data, error = await get_merge_requests(
         gitlab_url, project_id, access_token, params
     )
@@ -82,7 +78,6 @@ async def list_merge_requests(gitlab_url, project_id, access_token, args):
         logging.error(f"Error listing merge requests: {status} - {error}")
         raise Exception(f"Error listing merge requests: {status} - {error}")
     
-    # Start building enhanced response
     state_filter = f" ({state})" if state != "all" else ""
     result = f"# 📋 Merge Requests{state_filter}\n"
     result += f"*Found {len(data)} merge request{'s' if len(data) != 1 else ''}*\n\n"
@@ -93,9 +88,8 @@ async def list_merge_requests(gitlab_url, project_id, access_token, args):
             result += "💡 **Tip**: Create a merge request to start the development workflow.\n"
         return [TextContent(type="text", text=result)]
     
-    # Get enhanced data for all MRs in parallel (limit to first 5 for performance)
     enhanced_data_tasks = []
-    for mr in data[:5]:  # Limit parallel calls for performance
+    for mr in data[:5]:
         task = get_enhanced_mr_data(
             gitlab_url, project_id, access_token, mr['iid']
         )
@@ -107,15 +101,12 @@ async def list_merge_requests(gitlab_url, project_id, access_token, args):
         logging.warning(f"Error in parallel enhanced data fetch: {e}")
         enhanced_results = [(None, None)] * len(data[:5])
     
-    # Process and format each MR with enhanced data
     for i, mr in enumerate(data):
-        # Get enhanced data if available
         if i < len(enhanced_results):
             pipeline_data, changes_data = enhanced_results[i]
         else:
             pipeline_data, changes_data = None, None
         
-        # MR Header with visual indicators
         if mr['state'] == 'merged':
             state_icon = "✅"
         elif mr['state'] == 'opened':
@@ -125,70 +116,56 @@ async def list_merge_requests(gitlab_url, project_id, access_token, args):
         
         result += f"## {state_icon} !{mr['iid']}: {mr['title']}\n"
         
-        # Basic info with enhanced formatting
         author_name = mr['author']['name']
         author_username = mr['author']['username']
         result += f"**👤 Author**: {author_name} (@{author_username})\n"
         result += f"**📊 Status**: {mr['state']} ({get_state_explanation(mr['state'])})\n"
         
-        # Priority and readiness
         priority = get_mr_priority(mr)
         readiness = analyze_mr_readiness(mr, pipeline_data)
         result += f"**🏷️ Priority**: {priority}\n"
         result += f"**🚦 Merge Status**: {readiness}\n"
         
-        # Dates with better formatting
         result += f"**📅 Created**: {format_date(mr['created_at'])}\n"
         result += f"**🔄 Updated**: {format_date(mr['updated_at'])}\n"
         
-        # Branch info
         source_branch = mr['source_branch']
         target_branch = mr['target_branch']
         result += f"**🌿 Branches**: `{source_branch}` → `{target_branch}`\n"
         
-        # Pipeline status with enhanced data
         if pipeline_data:
             pipeline_status = pipeline_data.get('status')
             pipeline_icon = get_pipeline_status_icon(pipeline_status)
             result += f"**🔧 Pipeline**: {pipeline_icon} {pipeline_status}\n"
             
-            # Add pipeline details if available
             if pipeline_data.get('web_url'):
                 result += f"  *[View Pipeline]({pipeline_data['web_url']})*\n"
         elif mr.get('pipeline'):
-            # Fallback to basic pipeline info from MR data
             pipeline_status = mr['pipeline'].get('status')
             pipeline_icon = get_pipeline_status_icon(pipeline_status)
             result += f"**🔧 Pipeline**: {pipeline_icon} {pipeline_status or 'unknown'}\n"
         
-        # Changes statistics
         if changes_data:
             change_stats = calculate_change_stats(changes_data)
             result += f"**📈 Changes**: {change_stats}\n"
         
-        # Labels with visual indicators
         if mr.get('labels'):
             labels_str = ', '.join(f"`{label}`" for label in mr['labels'])
             result += f"**🏷️ Labels**: {labels_str}\n"
         
-        # Draft/WIP status
         if mr.get('draft') or mr.get('work_in_progress'):
             result += "**⚠️ Status**: 🚧 Draft/Work in Progress\n"
         
-        # Merge conflicts warning
         if mr.get('has_conflicts'):
             result += "**⚠️ Warning**: 🔥 Has merge conflicts\n"
         
-        # Quick actions
         result += f"**🔗 Actions**: [View MR]({mr['web_url']})"
         if mr['state'] == 'opened':
             result += f" | [Review]({mr['web_url']})"
         result += "\n\n"
     
-    # Add comprehensive summary section
     result += "## 📊 Summary\n"
     
-    # State breakdown
     state_counts = {}
     for mr in data:
         state = mr['state']
@@ -204,7 +181,6 @@ async def list_merge_requests(gitlab_url, project_id, access_token, args):
             icon = "❌"
         result += f"  • {icon} {state.title()}: {count}\n"
     
-    # Priority analysis
     priority_counts = {}
     for mr in data:
         priority = get_mr_priority(mr)
@@ -215,17 +191,14 @@ async def list_merge_requests(gitlab_url, project_id, access_token, args):
         for priority, count in priority_counts.items():
             result += f"  • {priority}: {count}\n"
     
-    # Action items for opened MRs
     opened_mrs = [mr for mr in data if mr['state'] == 'opened']
     
     if opened_mrs:
         result += "\n**🎯 Action Items**:\n"
         
-        # Count different types of issues
         has_conflicts = sum(1 for mr in opened_mrs if mr.get('has_conflicts'))
         drafts = sum(1 for mr in opened_mrs if mr.get('draft') or mr.get('work_in_progress'))
         
-        # Count pipeline issues from enhanced data
         failed_pipelines = 0
         for i, mr in enumerate(opened_mrs):
             if i < len(enhanced_results):
@@ -240,12 +213,10 @@ async def list_merge_requests(gitlab_url, project_id, access_token, args):
         if failed_pipelines:
             result += f"  • ❌ {failed_pipelines} MR{'s' if failed_pipelines > 1 else ''} with failed pipelines\n"
         
-        # Calculate ready MRs
         ready_count = len(opened_mrs) - has_conflicts - drafts - failed_pipelines
         if ready_count > 0:
             result += f"  • ✅ {ready_count} MR{'s' if ready_count > 1 else ''} ready for review\n"
         
-        # Next steps
         result += "\n**📋 Next Steps**:\n"
         if has_conflicts:
             result += "  • 🔧 Resolve merge conflicts to unblock development\n"
