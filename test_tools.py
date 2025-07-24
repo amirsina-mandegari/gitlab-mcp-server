@@ -8,7 +8,6 @@ from tools.get_merge_request_details import get_merge_request_details
 from tools.get_merge_request_reviews import get_merge_request_reviews
 from mcp.types import CallToolResult
 
-# Load environment variables
 from decouple import config
 
 GITLAB_URL = config('GITLAB_URL', default='https://git.partnerz.io')

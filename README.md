@@ -1,6 +1,6 @@
 # GitLab MCP Server
 
-Connect your AI assistant to GitLab. Ask questions like _"List open merge requests"_, _"Show me reviews for MR #123"_, or _"Find merge requests for the feature branch"_ directly in your chat.
+Connect your AI assistant to GitLab. Ask questions like _"List open merge requests"_, _"Show me reviews for MR #123"_, _"Get commit discussions for MR #456"_, or _"Find merge requests for the feature branch"_ directly in your chat.
 
 ## Table of Contents
 
@@ -63,6 +63,8 @@ Once connected, try these commands in your chat:
 - _"List open merge requests"_
 - _"Show me details for merge request 456"_
 - _"Get reviews and discussions for MR #123"_
+- _"Show me commit discussions for MR #456"_
+- _"Get all comments on commits in merge request #789"_
 - _"Find merge requests for the feature/auth-improvements branch"_
 - _"Show me closed merge requests targeting main"_
 - _"Reply to discussion abc123 in MR #456 with 'Thanks for the feedback!'"_
@@ -97,6 +99,45 @@ The enhanced review tools allow you to interact with merge request discussions:
    ```
 
 **Note**: The `get_merge_request_reviews` tool now displays discussion IDs and note IDs in the output, making it easy to reference specific discussions when replying or resolving.
+
+## Working with Commit Discussions
+
+The `get_commit_discussions` tool provides comprehensive insights into discussions and comments on individual commits within a merge request:
+
+1. **View all commit discussions** for a merge request:
+
+   ```
+   "Show me commit discussions for MR #123"
+   ```
+
+2. **Get detailed commit conversation history**:
+
+   ```
+   "Get all comments on commits in merge request #456"
+   ```
+
+This tool is particularly useful for:
+
+- **Code Review Tracking**: See all feedback on specific commits
+- **Discussion History**: Understand the evolution of code discussions
+- **Commit-Level Context**: View comments tied to specific code changes
+- **Review Progress**: Monitor which commits have been discussed
+
+**Technical Implementation:**
+
+- Uses `/projects/:project_id/merge_requests/:merge_request_iid/commits` to get all commits with proper pagination
+- Fetches ALL merge request discussions using `/projects/:project_id/merge_requests/:merge_request_iid/discussions` with pagination support
+- Filters discussions by commit SHA using position data to show commit-specific conversations
+- Handles both individual comments and discussion threads correctly
+
+The output includes:
+
+- Summary of total commits and discussion counts
+- Individual commit details (SHA, title, author, date)
+- All discussions and comments for each commit with file positions
+- Complete conversation threads with replies
+- File positions for diff-related comments
+- Thread conversations with replies
 
 ## Configuration Options
 
@@ -136,6 +177,7 @@ export GITLAB_URL=https://gitlab.com
 | `list_merge_requests`       | List merge requests          | `state`, `target_branch`, `limit`                |
 | `get_merge_request_details` | Get MR details               | `merge_request_iid`                              |
 | `get_merge_request_reviews` | Get reviews/discussions      | `merge_request_iid`                              |
+| `get_commit_discussions`    | Get discussions on commits   | `merge_request_iid`                              |
 | `get_branch_merge_requests` | Find MRs for branch          | `branch_name`                                    |
 | `reply_to_review_comment`   | Reply to existing discussion | `merge_request_iid`, `discussion_id`, `body`     |
 | `create_review_comment`     | Create new discussion thread | `merge_request_iid`, `body`                      |
@@ -150,15 +192,25 @@ gitlab-mcp-server/
 ├── main.py              # MCP server entry point
 ├── config.py            # Configuration management
 ├── gitlab_api.py        # GitLab API client
+├── utils.py             # Utility functions
+├── logging_config.py    # Logging configuration
 ├── run-mcp.sh          # Launch script
-└── tools/              # Tool implementations
+└── tools/              # Tool implementations package
+    ├── __init__.py         # Package initialization
+    ├── list_merge_requests.py
+    ├── get_merge_request_details.py
+    ├── get_merge_request_reviews.py
+    ├── get_commit_discussions.py
+    ├── get_branch_merge_requests.py
+    └── reply_to_review_comment.py
 ```
 
 ### Adding Tools
 
-1. Create new file in `tools/`
-2. Add to `list_tools()` in `main.py`
-3. Add handler to `call_tool()` in `main.py`
+1. Create new file in `tools/` directory
+2. Add import and export to `tools/__init__.py`
+3. Add to `list_tools()` in `main.py`
+4. Add handler to `call_tool()` in `main.py`
 
 ### Testing
 

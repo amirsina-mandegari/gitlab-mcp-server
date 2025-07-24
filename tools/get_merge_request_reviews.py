@@ -20,16 +20,16 @@ import logging
 def get_review_type_icon(note):
     """Get appropriate icon for review type"""
     if note.get('resolvable'):
-        return '💬'  # Discussion thread
+        return '💬'
     elif note.get('position'):
-        return '📝'  # Code comment
+        return '📝'
     elif 'approved' in note.get('body', '').lower():
-        return '✅'  # Approval
+        return '✅'
     elif any(word in note.get('body', '').lower() 
              for word in ['reject', 'needs work', 'changes requested']):
-        return '❌'  # Rejection/Changes requested
+        return '❌'
     else:
-        return '💭'  # General comment
+        return '💭'
 
 
 def get_approval_summary(approvals):
@@ -105,7 +105,7 @@ def format_discussion_thread(discussion):
     
     for note in discussion['notes']:
         if note.get('system'):
-            continue  # Skip system notes
+            continue
         
         author_name = note['author']['name']
         author_username = note['author']['username']
@@ -116,7 +116,6 @@ def format_discussion_thread(discussion):
         timestamp = format_date(note['created_at'])
         result += f"*{timestamp}* | Note ID: `{note_id}`\n"
         
-        # Add file/line context for code comments
         if note.get('position'):
             pos = note['position']
             if pos.get('new_path'):
@@ -124,7 +123,6 @@ def format_discussion_thread(discussion):
                 if pos.get('new_line'):
                     result += f"📍 **Line**: {pos['new_line']}\n"
         
-        # Format the comment body
         body = note.get('body', '').strip()
         if body:
             result += f"\n{body}\n"
@@ -140,7 +138,6 @@ async def get_merge_request_reviews(
     logging.info(f"get_merge_request_reviews called with args: {args}")
     mr_iid = args["merge_request_iid"]
     
-    # Parallel API calls for comprehensive data
     tasks = [
         api_get_merge_request_reviews(gitlab_url, project_id, access_token, mr_iid),
         get_merge_request_details(gitlab_url, project_id, access_token, mr_iid),
@@ -154,7 +151,6 @@ async def get_merge_request_reviews(
         logging.error(f"Error in parallel API calls: {e}")
         raise Exception(f"Error fetching merge request data: {e}")
     
-    # Extract results
     discussions_status, discussions, discussions_text = reviews_result["discussions"]
     approvals_status, approvals, approvals_text = reviews_result["approvals"]
     
@@ -162,15 +158,12 @@ async def get_merge_request_reviews(
     pipeline_status, pipeline_data, pipeline_text = pipeline_result
     changes_status, changes_data, changes_text = changes_result
     
-    # Check for errors in discussions (most critical)
     if discussions_status != 200:
         logging.error(f"Error fetching discussions {discussions_status}: {discussions_text}")
         raise Exception(f"Error fetching discussions: {discussions_status} - {discussions_text}")
     
-    # Start building enhanced output
     result = f"# 🔍 Reviews & Discussions for MR !{mr_iid}\n\n"
     
-    # Add MR context if available
     if details_status == 200:
         result += f"## 📋 Merge Request Overview\n"
         result += f"**Title**: {mr_details.get('title', 'N/A')}\n"
@@ -178,7 +171,6 @@ async def get_merge_request_reviews(
         result += f"**Author**: {mr_details.get('author', {}).get('name', 'N/A')} (@{mr_details.get('author', {}).get('username', 'N/A')})\n"
         result += f"**Priority**: {get_mr_priority(mr_details)}\n"
         
-        # Add pipeline and changes info
         if pipeline_status == 200 and pipeline_data:
             pipeline_icon = get_pipeline_status_icon(pipeline_data.get('status'))
             result += f"**Pipeline**: {pipeline_icon} {pipeline_data.get('status', 'unknown')}\n"
@@ -187,19 +179,15 @@ async def get_merge_request_reviews(
             change_stats = calculate_change_stats(changes_data)
             result += f"**Changes**: {change_stats}\n"
         
-        # Merge readiness analysis
         readiness = analyze_mr_readiness(mr_details, pipeline_data, approvals)
         result += f"**Merge Status**: {readiness}\n"
         
         result += f"**Updated**: {format_date(mr_details.get('updated_at', 'N/A'))}\n\n"
     
-    # Add approval summary
     result += get_approval_summary(approvals)
     
-    # Add discussion summary
     result += get_discussion_summary(discussions)
     
-    # Add detailed discussions
     if discussions:
         result += "## 📝 Detailed Discussions\n\n"
         for discussion in discussions:
@@ -209,7 +197,6 @@ async def get_merge_request_reviews(
     else:
         result += "💬 No discussions found\n\n"
     
-    # Add actionable summary
     result += "## 📊 Action Items\n"
     action_items = []
     
