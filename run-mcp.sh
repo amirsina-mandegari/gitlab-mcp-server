@@ -17,4 +17,4 @@ fi
 
 # Activate the virtual environment and run the MCP server
 source "$SCRIPT_DIR/.venv/bin/activate"
-python "$SCRIPT_DIR/main.py" 2>&1 | tee /tmp/gitlab-mcp-server.log 
+python "$SCRIPT_DIR/main.py" 2>&1 | tee /tmp/gitlab-mcp-server.log

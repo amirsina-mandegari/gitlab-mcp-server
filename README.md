@@ -355,6 +355,47 @@ gitlab-mcp-server/
 3. Add to `list_tools()` in `main.py`
 4. Add handler to `call_tool()` in `main.py`
 
+### Development Setup
+
+1. **Install development dependencies:**
+
+```bash
+pip install -r dev-requirements.txt
+```
+
+2. **Set up pre-commit hooks:**
+
+```bash
+pre-commit install
+```
+
+This will automatically check and format your code for:
+
+- ✨ **Trailing whitespace** - auto-removed
+- 📄 **End-of-file issues** - auto-fixed
+- 🎨 **Code formatting (black)** - auto-formatted
+- 📦 **Import sorting (isort)** - auto-organized
+- 🐍 **Python style (flake8)** - linted with bugbear & print detection
+- 🔒 **Security issues (bandit)** - security checks
+- 📋 **YAML/JSON formatting** - validated
+
+3. **Format all existing code (first time only):**
+
+```bash
+# Install dependencies first if not already done
+pip install -r dev-requirements.txt
+
+# Format everything
+black --line-length=120 .
+isort --profile black --line-length=120 .
+```
+
+4. **Run pre-commit manually on all files:**
+
+```bash
+pre-commit run --all-files
+```
+
 ### Testing
 
 ```bash

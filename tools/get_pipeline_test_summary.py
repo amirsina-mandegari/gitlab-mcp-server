@@ -1,24 +1,19 @@
 import logging
+
 from mcp.types import TextContent
-from gitlab_api import (
-    get_merge_request_pipeline,
-    get_pipeline_test_report_summary
-)
+
+from gitlab_api import get_merge_request_pipeline, get_pipeline_test_report_summary
 
 
-async def get_pipeline_test_summary(
-    gitlab_url, project_id, access_token, args
-):
+async def get_pipeline_test_summary(gitlab_url, project_id, access_token, args):
     """Get the test summary for a merge request's latest pipeline"""
     logging.info(f"get_pipeline_test_summary called with args: {args}")
     mr_iid = args["merge_request_iid"]
 
     # First, get the latest pipeline for this MR
     try:
-        pipeline_status, pipeline_data, pipeline_error = (
-            await get_merge_request_pipeline(
-                gitlab_url, project_id, access_token, mr_iid
-            )
+        pipeline_status, pipeline_data, pipeline_error = await get_merge_request_pipeline(
+            gitlab_url, project_id, access_token, mr_iid
         )
     except Exception as e:
         logging.error(f"Error fetching pipeline: {e}")
@@ -30,7 +25,7 @@ async def get_pipeline_test_summary(
         result += "Cannot fetch test summary without a pipeline.\n"
         return [TextContent(type="text", text=result)]
 
-    pipeline_id = pipeline_data.get('id')
+    pipeline_id = pipeline_data.get("id")
     logging.info(f"Fetching test summary for pipeline {pipeline_id}")
 
     # Now get the test summary for this pipeline
@@ -62,18 +57,18 @@ async def get_pipeline_test_summary(
     # Format the test summary
     result = f"# 📊 Test Summary for Merge Request !{mr_iid}\n\n"
     result += f"**Pipeline**: #{pipeline_id}"
-    if pipeline_data.get('web_url'):
+    if pipeline_data.get("web_url"):
         result += f" - [View Pipeline]({pipeline_data['web_url']})\n\n"
     else:
         result += "\n\n"
 
     # Get summary data
-    total_time = summary_data.get('total', {}).get('time', 0)
-    total_count = summary_data.get('total', {}).get('count', 0)
-    success_count = summary_data.get('total', {}).get('success', 0)
-    failed_count = summary_data.get('total', {}).get('failed', 0)
-    skipped_count = summary_data.get('total', {}).get('skipped', 0)
-    error_count = summary_data.get('total', {}).get('error', 0)
+    total_time = summary_data.get("total", {}).get("time", 0)
+    total_count = summary_data.get("total", {}).get("count", 0)
+    success_count = summary_data.get("total", {}).get("success", 0)
+    failed_count = summary_data.get("total", {}).get("failed", 0)
+    skipped_count = summary_data.get("total", {}).get("skipped", 0)
+    error_count = summary_data.get("total", {}).get("error", 0)
 
     # Summary
     result += "## 📋 Summary\n\n"
@@ -102,25 +97,25 @@ async def get_pipeline_test_summary(
             result += f"**❌ Pass Rate**: {pass_rate:.1f}%\n\n"
 
     # Test suites breakdown
-    test_suites = summary_data.get('test_suites', [])
+    test_suites = summary_data.get("test_suites", [])
     if test_suites:
         result += "## 📦 Test Suites\n\n"
         for suite in test_suites:
-            suite_name = suite.get('name', 'Unknown Suite')
-            suite_total = suite.get('total_count', 0)
-            suite_success = suite.get('success_count', 0)
-            suite_failed = suite.get('failed_count', 0)
-            suite_skipped = suite.get('skipped_count', 0)
-            suite_error = suite.get('error_count', 0)
-            suite_time = suite.get('total_time', 0)
+            suite_name = suite.get("name", "Unknown Suite")
+            suite_total = suite.get("total_count", 0)
+            suite_success = suite.get("success_count", 0)
+            suite_failed = suite.get("failed_count", 0)
+            suite_skipped = suite.get("skipped_count", 0)
+            suite_error = suite.get("error_count", 0)
+            suite_time = suite.get("total_time", 0)
 
             # Determine status icon
             if suite_failed == 0 and suite_error == 0:
-                status_icon = '✅'
+                status_icon = "✅"
             elif suite_failed > 0 or suite_error > 0:
-                status_icon = '❌'
+                status_icon = "❌"
             else:
-                status_icon = '⚪'
+                status_icon = "⚪"
 
             result += f"### {status_icon} {suite_name}\n\n"
             result += f"- **Total**: {suite_total} tests\n"
@@ -146,4 +141,3 @@ async def get_pipeline_test_summary(
         result += "3. Use `get_job_log` to see full CI output if needed\n"
 
     return [TextContent(type="text", text=result)]
-

@@ -1,24 +1,19 @@
 import logging
+
 from mcp.types import TextContent
-from gitlab_api import (
-    get_merge_request_pipeline,
-    get_pipeline_test_report
-)
+
+from gitlab_api import get_merge_request_pipeline, get_pipeline_test_report
 
 
-async def get_merge_request_test_report(
-    gitlab_url, project_id, access_token, args
-):
+async def get_merge_request_test_report(gitlab_url, project_id, access_token, args):
     """Get the test report for a merge request's latest pipeline"""
     logging.info(f"get_merge_request_test_report called with args: {args}")
     mr_iid = args["merge_request_iid"]
 
     # First, get the latest pipeline for this MR
     try:
-        pipeline_status, pipeline_data, pipeline_error = (
-            await get_merge_request_pipeline(
-                gitlab_url, project_id, access_token, mr_iid
-            )
+        pipeline_status, pipeline_data, pipeline_error = await get_merge_request_pipeline(
+            gitlab_url, project_id, access_token, mr_iid
         )
     except Exception as e:
         logging.error(f"Error fetching pipeline: {e}")
@@ -30,14 +25,12 @@ async def get_merge_request_test_report(
         result += "Cannot fetch test report without a pipeline.\n"
         return [TextContent(type="text", text=result)]
 
-    pipeline_id = pipeline_data.get('id')
+    pipeline_id = pipeline_data.get("id")
     logging.info(f"Fetching test report for pipeline {pipeline_id}")
 
     # Now get the test report for this pipeline
     try:
-        status, report_data, error = await get_pipeline_test_report(
-            gitlab_url, project_id, access_token, pipeline_id
-        )
+        status, report_data, error = await get_pipeline_test_report(gitlab_url, project_id, access_token, pipeline_id)
     except Exception as e:
         logging.error(f"Error fetching test report: {e}")
         raise Exception(f"Error fetching test report: {e}")
@@ -62,17 +55,17 @@ async def get_merge_request_test_report(
     # Format the test report
     result = f"# 📊 Test Report for Merge Request !{mr_iid}\n\n"
     result += f"**Pipeline**: #{pipeline_id}"
-    if pipeline_data.get('web_url'):
+    if pipeline_data.get("web_url"):
         result += f" - [View Pipeline]({pipeline_data['web_url']})\n\n"
     else:
         result += "\n\n"
 
-    total_time = report_data.get('total_time', 0)
-    total_count = report_data.get('total_count', 0)
-    success_count = report_data.get('success_count', 0)
-    failed_count = report_data.get('failed_count', 0)
-    skipped_count = report_data.get('skipped_count', 0)
-    error_count = report_data.get('error_count', 0)
+    total_time = report_data.get("total_time", 0)
+    total_count = report_data.get("total_count", 0)
+    success_count = report_data.get("success_count", 0)
+    failed_count = report_data.get("failed_count", 0)
+    skipped_count = report_data.get("skipped_count", 0)
+    error_count = report_data.get("error_count", 0)
 
     # Summary
     result += "## 📋 Summary\n\n"
@@ -97,45 +90,42 @@ async def get_merge_request_test_report(
             result += f"**📊 Pass Rate**: {pass_rate:.1f}%\n\n"
 
     # Show failed tests first
-    test_suites = report_data.get('test_suites', [])
+    test_suites = report_data.get("test_suites", [])
 
     if failed_count > 0 or error_count > 0:
         result += "## ❌ Failed Tests\n\n"
 
         for suite in test_suites:
-            suite_name = suite.get('name', 'Unknown Suite')
-            test_cases = suite.get('test_cases', [])
+            suite_name = suite.get("name", "Unknown Suite")
+            test_cases = suite.get("test_cases", [])
 
-            failed_cases = [
-                tc for tc in test_cases
-                if tc.get('status') in ['failed', 'error']
-            ]
+            failed_cases = [tc for tc in test_cases if tc.get("status") in ["failed", "error"]]
 
             if failed_cases:
                 result += f"### 📦 {suite_name}\n\n"
 
                 for test_case in failed_cases:
-                    test_name = test_case.get('name', 'Unknown Test')
-                    status = test_case.get('status', 'unknown')
-                    execution_time = test_case.get('execution_time', 0)
+                    test_name = test_case.get("name", "Unknown Test")
+                    status = test_case.get("status", "unknown")
+                    execution_time = test_case.get("execution_time", 0)
 
-                    status_icon = '❌' if status == 'failed' else '⚠️'
+                    status_icon = "❌" if status == "failed" else "⚠️"
                     result += f"#### {status_icon} {test_name}\n\n"
                     result += f"**Status**: {status}\n"
                     result += f"**Duration**: {execution_time:.3f}s\n"
 
-                    if test_case.get('classname'):
+                    if test_case.get("classname"):
                         result += f"**Class**: `{test_case['classname']}`\n"
 
-                    if test_case.get('file'):
+                    if test_case.get("file"):
                         result += f"**File**: `{test_case['file']}`\n"
 
                     # System output (error message)
-                    if test_case.get('system_output'):
+                    if test_case.get("system_output"):
                         result += "\n**Error Output:**\n\n"
                         result += "```\n"
                         # Limit error output to reasonable size
-                        error_output = test_case['system_output']
+                        error_output = test_case["system_output"]
                         if len(error_output) > 2000:
                             result += error_output[:2000]
                             result += "\n... (truncated)\n"
@@ -150,20 +140,17 @@ async def get_merge_request_test_report(
         result += "## ⏭️ Skipped Tests\n\n"
 
         for suite in test_suites:
-            suite_name = suite.get('name', 'Unknown Suite')
-            test_cases = suite.get('test_cases', [])
+            suite_name = suite.get("name", "Unknown Suite")
+            test_cases = suite.get("test_cases", [])
 
-            skipped_cases = [
-                tc for tc in test_cases
-                if tc.get('status') == 'skipped'
-            ]
+            skipped_cases = [tc for tc in test_cases if tc.get("status") == "skipped"]
 
             if skipped_cases:
                 result += f"### 📦 {suite_name}\n\n"
                 for test_case in skipped_cases:
-                    test_name = test_case.get('name', 'Unknown Test')
+                    test_name = test_case.get("name", "Unknown Test")
                     result += f"- ⏭️ {test_name}"
-                    if test_case.get('classname'):
+                    if test_case.get("classname"):
                         result += f" (`{test_case['classname']}`)"
                     result += "\n"
                 result += "\n"
@@ -172,15 +159,15 @@ async def get_merge_request_test_report(
     if len(test_suites) > 0:
         result += "## 📦 Test Suites Overview\n\n"
         for suite in test_suites:
-            suite_name = suite.get('name', 'Unknown Suite')
-            total = suite.get('total_count', 0)
-            success = suite.get('success_count', 0)
-            failed = suite.get('failed_count', 0)
-            skipped = suite.get('skipped_count', 0)
-            errors = suite.get('error_count', 0)
-            suite_time = suite.get('total_time', 0)
+            suite_name = suite.get("name", "Unknown Suite")
+            total = suite.get("total_count", 0)
+            success = suite.get("success_count", 0)
+            failed = suite.get("failed_count", 0)
+            skipped = suite.get("skipped_count", 0)
+            errors = suite.get("error_count", 0)
+            suite_time = suite.get("total_time", 0)
 
-            status_icon = '✅' if failed == 0 and errors == 0 else '❌'
+            status_icon = "✅" if failed == 0 and errors == 0 else "❌"
             result += f"- {status_icon} **{suite_name}**: "
             result += f"{success}/{total} passed"
             if failed > 0:

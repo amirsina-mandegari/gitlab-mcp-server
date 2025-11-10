@@ -1,19 +1,17 @@
 import logging
+
 from mcp.types import TextContent
+
 from gitlab_api import get_job_trace
 
 
-async def get_job_log(
-    gitlab_url, project_id, access_token, args
-):
+async def get_job_log(gitlab_url, project_id, access_token, args):
     """Get the trace/log output for a specific pipeline job"""
     logging.info(f"get_job_log called with args: {args}")
     job_id = args["job_id"]
 
     try:
-        status, log_data, error = await get_job_trace(
-            gitlab_url, project_id, access_token, job_id
-        )
+        status, log_data, error = await get_job_trace(gitlab_url, project_id, access_token, job_id)
     except Exception as e:
         logging.error(f"Error fetching job log: {e}")
         raise Exception(f"Error fetching job log: {e}")

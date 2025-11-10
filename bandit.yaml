@@ -1,0 +1,24 @@
+# Bandit security linter configuration
+# See https://bandit.readthedocs.io/
+
+# Exclude paths
+exclude_dirs:
+  - /tests/
+  - /.venv/
+  - /venv/
+  - __pycache__
+
+# Skip certain tests
+skips:
+  # B101: Skip assert_used (common in tests)
+  - B101
+  # B601: Skip paramiko_calls (if using paramiko)
+  # - B601
+
+# Set severity level
+# Options: LOW, MEDIUM, HIGH
+severity: MEDIUM
+
+# Set confidence level
+# Options: LOW, MEDIUM, HIGH
+confidence: MEDIUM

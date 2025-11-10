@@ -1,0 +1,15 @@
+[flake8]
+max-line-length = 120
+# E203: whitespace before ':' (conflicts with black)
+# W503: line break before binary operator (conflicts with black)
+# B008: do not perform function calls in argument defaults (FastAPI uses this)
+extend-ignore = E203, W503, B008
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    *.egg-info,
+    .pytest_cache
+per-file-ignores =
+    test_tools.py:T201
