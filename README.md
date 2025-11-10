@@ -15,13 +15,33 @@ Connect your AI assistant to GitLab. Ask questions like _"List open merge reques
 
 ## Quick Setup
 
+### Prerequisites
+
+This project uses [uv](https://github.com/astral-sh/uv) for fast and reliable Python package management.
+
+**Install uv:**
+
+```bash
+# macOS and Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or with pip
+pip install uv
+```
+
+### Installation
+
 1. **Install the server:**
 
    ```bash
    git clone https://github.com/amirsina-mandegari/gitlab-mcp-server.git
    cd gitlab-mcp-server
-   python -m venv .venv && source .venv/bin/activate
-   pip install -r requirements.txt
+   uv venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   uv pip install -e .
    chmod +x run-mcp.sh
    ```
 
@@ -322,6 +342,42 @@ export GITLAB_URL=https://gitlab.com
 | `create_review_comment`         | Create new discussion thread      | `merge_request_iid`, `body`                      |
 | `resolve_review_discussion`     | Resolve/unresolve discussion      | `merge_request_iid`, `discussion_id`, `resolved` |
 
+## Migrating from pip to uv
+
+If you have an existing installation using pip, here's how to migrate to uv:
+
+1. **Install uv** (see Prerequisites section above)
+
+2. **Remove the old virtual environment:**
+
+   ```bash
+   deactivate  # If you have a venv activated
+   rm -rf .venv
+   ```
+
+3. **Create a new virtual environment with uv:**
+
+   ```bash
+   uv venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   uv pip install -e .
+   ```
+
+4. **For development, install dev dependencies:**
+
+   ```bash
+   uv pip install -e ".[dev]"
+   ```
+
+That's it! Your project is now using uv for faster and more reliable dependency management.
+
+**Note:** The `requirements.txt` and `dev-requirements.txt` files are kept for backward compatibility. However, `pyproject.toml` is now the source of truth for dependencies. If you add new dependencies, update `pyproject.toml` and regenerate the requirements files if needed:
+
+```bash
+uv pip compile pyproject.toml -o requirements.txt
+uv pip compile --extra dev pyproject.toml -o dev-requirements.txt
+```
+
 ## Development
 
 ### Project Structure
@@ -360,7 +416,7 @@ gitlab-mcp-server/
 1. **Install development dependencies:**
 
 ```bash
-pip install -r dev-requirements.txt
+uv pip install -e ".[dev]"
 ```
 
 2. **Set up pre-commit hooks:**
@@ -383,7 +439,7 @@ This will automatically check and format your code for:
 
 ```bash
 # Install dependencies first if not already done
-pip install -r dev-requirements.txt
+uv pip install -e ".[dev]"
 
 # Format everything
 black --line-length=120 .
