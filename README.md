@@ -63,6 +63,10 @@ Once connected, try these commands in your chat:
 - _"List open merge requests"_
 - _"Show me details for merge request 456"_
 - _"Get reviews and discussions for MR #123"_
+- _"Show me the test summary for MR #456"_
+- _"What tests failed in merge request #789?"_
+- _"Show me the pipeline for MR #456"_
+- _"Get the failed job logs for merge request #789"_
 - _"Show me commit discussions for MR #456"_
 - _"Get all comments on commits in merge request #789"_
 - _"Find merge requests for the feature/auth-improvements branch"_
@@ -99,6 +103,137 @@ The enhanced review tools allow you to interact with merge request discussions:
    ```
 
 **Note**: The `get_merge_request_reviews` tool now displays discussion IDs and note IDs in the output, making it easy to reference specific discussions when replying or resolving.
+
+## Working with Test Reports (Recommended for Test Failures)
+
+GitLab provides two tools for checking test results - use the summary for quick checks, and the full report for detailed debugging:
+
+### Option 1: Test Summary (Fast & Lightweight) ⚡
+
+Use `get_pipeline_test_summary` for a quick overview:
+
+```
+"Show me the test summary for MR #123"
+"How many tests passed in MR #456?"
+```
+
+**What You Get:**
+
+- 📊 Pass/fail counts per test suite
+- ⏱️ Total execution time
+- 🎯 Pass rate percentage
+- ⚡ **Fast** - doesn't include detailed error messages
+
+### Option 2: Full Test Report (Detailed) 🔍
+
+Use `get_merge_request_test_report` for detailed debugging:
+
+```
+"Show me the test report for MR #123"
+"What tests failed in merge request #456?"
+```
+
+**What You Get:**
+
+- ✅ **Specific test names** that passed/failed
+- ❌ **Error messages** and stack traces
+- 📦 **Test suites** organized by class/file
+- ⏱️ **Execution time** for each test
+- 📊 **Pass rate** and summary statistics
+- 📄 **File paths** and line numbers
+
+**How Both Work:**
+
+- Automatically fetch the latest pipeline for the merge request
+- Retrieve test data from that pipeline (uses GitLab's `/pipelines/:pipeline_id/test_report` or `/test_report_summary` API)
+
+**Example Output:**
+
+```
+Test Report Summary:
+Total: 45 tests | ✅ 42 passed | ❌ 3 failed | Pass Rate: 93.3%
+
+❌ Failed Tests:
+  test_login_with_invalid_password (0.3s)
+    Error: AssertionError: Expected 401, got 200
+    File: tests/auth_test.py
+```
+
+**Why Use This Instead of Job Logs?**
+
+- 🎯 **No noise**: Only test results, no build/setup output
+- 📊 **Structured data**: Easy for AI to understand and suggest fixes
+- 🚀 **Fast**: Much smaller than full job logs
+- 🔍 **Precise**: Shows exact test names and error locations
+
+**Requirements:**
+
+Your CI must upload test results using `artifacts:reports:junit` in `.gitlab-ci.yml`:
+
+```yaml
+test:
+  script:
+    - pytest --junitxml=report.xml
+  artifacts:
+    reports:
+      junit: report.xml
+```
+
+## Working with Pipeline Jobs and Logs
+
+The pipeline tools provide a two-step workflow for debugging test failures:
+
+### Step 1: Get Pipeline Overview
+
+Use `get_merge_request_pipeline` to see all jobs and their statuses:
+
+```
+"Show me the pipeline for MR #456"
+```
+
+**What You Get:**
+
+- Pipeline overview (status, duration, coverage)
+- All jobs grouped by status (failed, running, success)
+- **Job IDs** for each job (use these to fetch logs)
+- Direct links to view jobs in GitLab
+- Job-level timing and stage information
+
+### Step 2: Get Specific Job Logs
+
+Use `get_job_log` with a job ID to fetch the actual output:
+
+```
+"Get the log for job 12345"
+"Show me the output of job 67890"
+```
+
+**What You Get:**
+
+- Complete job output/trace
+- Log size and line count
+- Automatically truncated to last 15,000 characters for very long logs
+
+### Typical Workflow:
+
+```
+You: "Show me the pipeline for MR #123"
+AI: "Pipeline failed. 2 jobs failed:
+     - test-unit (Job ID: 12345)
+     - test-integration (Job ID: 67890)"
+
+You: "Get the log for job 12345"
+AI: [Shows full test output with error details]
+
+You: "Fix the failing test"
+AI: [Analyzes the log and suggests fixes]
+```
+
+**Why Two Tools?**
+
+- **Performance**: Only fetch logs when needed (not all at once)
+- **Flexibility**: Check any job's log (failed, successful, or running)
+- **Context Efficient**: Avoid dumping huge logs unnecessarily
 
 ## Working with Commit Discussions
 
@@ -172,16 +307,20 @@ export GITLAB_URL=https://gitlab.com
 
 ## Tool Reference
 
-| Tool                        | Description                  | Parameters                                       |
-| --------------------------- | ---------------------------- | ------------------------------------------------ |
-| `list_merge_requests`       | List merge requests          | `state`, `target_branch`, `limit`                |
-| `get_merge_request_details` | Get MR details               | `merge_request_iid`                              |
-| `get_merge_request_reviews` | Get reviews/discussions      | `merge_request_iid`                              |
-| `get_commit_discussions`    | Get discussions on commits   | `merge_request_iid`                              |
-| `get_branch_merge_requests` | Find MRs for branch          | `branch_name`                                    |
-| `reply_to_review_comment`   | Reply to existing discussion | `merge_request_iid`, `discussion_id`, `body`     |
-| `create_review_comment`     | Create new discussion thread | `merge_request_iid`, `body`                      |
-| `resolve_review_discussion` | Resolve/unresolve discussion | `merge_request_iid`, `discussion_id`, `resolved` |
+| Tool                            | Description                       | Parameters                                       |
+| ------------------------------- | --------------------------------- | ------------------------------------------------ |
+| `list_merge_requests`           | List merge requests               | `state`, `target_branch`, `limit`                |
+| `get_merge_request_details`     | Get MR details                    | `merge_request_iid`                              |
+| `get_pipeline_test_summary`     | Get test summary (fast overview)  | `merge_request_iid`                              |
+| `get_merge_request_test_report` | Get detailed test failure reports | `merge_request_iid`                              |
+| `get_merge_request_pipeline`    | Get pipeline with all jobs        | `merge_request_iid`                              |
+| `get_job_log`                   | Get trace/output for specific job | `job_id`                                         |
+| `get_merge_request_reviews`     | Get reviews/discussions           | `merge_request_iid`                              |
+| `get_commit_discussions`        | Get discussions on commits        | `merge_request_iid`                              |
+| `get_branch_merge_requests`     | Find MRs for branch               | `branch_name`                                    |
+| `reply_to_review_comment`       | Reply to existing discussion      | `merge_request_iid`, `discussion_id`, `body`     |
+| `create_review_comment`         | Create new discussion thread      | `merge_request_iid`, `body`                      |
+| `resolve_review_discussion`     | Resolve/unresolve discussion      | `merge_request_iid`, `discussion_id`, `resolved` |
 
 ## Development
 
@@ -199,6 +338,10 @@ gitlab-mcp-server/
     ├── __init__.py         # Package initialization
     ├── list_merge_requests.py
     ├── get_merge_request_details.py
+    ├── get_merge_request_test_report.py
+    ├── get_pipeline_test_summary.py
+    ├── get_merge_request_pipeline.py
+    ├── get_job_log.py
     ├── get_merge_request_reviews.py
     ├── get_commit_discussions.py
     ├── get_branch_merge_requests.py

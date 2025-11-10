@@ -19,6 +19,10 @@ from tools import (
     list_merge_requests,
     get_merge_request_reviews,
     get_merge_request_details,
+    get_merge_request_pipeline,
+    get_merge_request_test_report,
+    get_pipeline_test_summary,
+    get_job_log,
     get_branch_merge_requests,
     reply_to_review_comment,
     create_review_comment,
@@ -110,6 +114,98 @@ class GitLabMCPServer:
                             }
                         },
                         "required": ["merge_request_iid"],
+                        "additionalProperties": False
+                    }
+                ),
+                Tool(
+                    name="get_merge_request_pipeline",
+                    description=(
+                        "Get the last pipeline data for a specific merge "
+                        "request, including all jobs and their statuses. "
+                        "Returns job IDs that can be used with get_job_log "
+                        "to fetch detailed output."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "merge_request_iid": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": (
+                                    "Internal ID of the merge request"
+                                )
+                            }
+                        },
+                        "required": ["merge_request_iid"],
+                        "additionalProperties": False
+                    }
+                ),
+                Tool(
+                    name="get_merge_request_test_report",
+                    description=(
+                        "Get structured test report for a merge request "
+                        "with specific test failures, error messages, and "
+                        "stack traces. Shows the same test data visible on "
+                        "the GitLab MR page. Best for debugging test failures."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "merge_request_iid": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": (
+                                    "Internal ID of the merge request"
+                                )
+                            }
+                        },
+                        "required": ["merge_request_iid"],
+                        "additionalProperties": False
+                    }
+                ),
+                Tool(
+                    name="get_pipeline_test_summary",
+                    description=(
+                        "Get test summary for a merge request - a "
+                        "lightweight overview showing pass/fail counts "
+                        "per test suite. Faster than full test report. "
+                        "Great for quick status checks."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "merge_request_iid": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": (
+                                    "Internal ID of the merge request"
+                                )
+                            }
+                        },
+                        "required": ["merge_request_iid"],
+                        "additionalProperties": False
+                    }
+                ),
+                Tool(
+                    name="get_job_log",
+                    description=(
+                        "Get the trace/log output for a specific pipeline "
+                        "job. Perfect for debugging failed tests and "
+                        "understanding CI/CD failures."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "job_id": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": (
+                                    "ID of the pipeline job (obtained from "
+                                    "get_merge_request_pipeline)"
+                                )
+                            }
+                        },
+                        "required": ["job_id"],
                         "additionalProperties": False
                     }
                 ),
@@ -262,9 +358,13 @@ class GitLabMCPServer:
             
             try:
                 if name not in [
-                    "list_merge_requests", 
+                    "list_merge_requests",
                     "get_merge_request_reviews",
-                    "get_merge_request_details", 
+                    "get_merge_request_details",
+                    "get_merge_request_pipeline",
+                    "get_merge_request_test_report",
+                    "get_pipeline_test_summary",
+                    "get_job_log",
                     "get_branch_merge_requests",
                     "reply_to_review_comment",
                     "create_review_comment",
@@ -296,6 +396,34 @@ class GitLabMCPServer:
                         self.config['gitlab_url'], 
                         self.config['project_id'], 
                         self.config['access_token'], 
+                        arguments
+                    )
+                elif name == "get_merge_request_pipeline":
+                    return await get_merge_request_pipeline(
+                        self.config['gitlab_url'],
+                        self.config['project_id'],
+                        self.config['access_token'],
+                        arguments
+                    )
+                elif name == "get_merge_request_test_report":
+                    return await get_merge_request_test_report(
+                        self.config['gitlab_url'],
+                        self.config['project_id'],
+                        self.config['access_token'],
+                        arguments
+                    )
+                elif name == "get_pipeline_test_summary":
+                    return await get_pipeline_test_summary(
+                        self.config['gitlab_url'],
+                        self.config['project_id'],
+                        self.config['access_token'],
+                        arguments
+                    )
+                elif name == "get_job_log":
+                    return await get_job_log(
+                        self.config['gitlab_url'],
+                        self.config['project_id'],
+                        self.config['access_token'],
                         arguments
                     )
                 elif name == "get_branch_merge_requests":

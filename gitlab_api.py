@@ -39,6 +39,81 @@ async def get_merge_request_pipeline(
             )
 
 
+async def get_pipeline_jobs(
+    gitlab_url, project_id, access_token, pipeline_id
+):
+    """Get all jobs for a specific pipeline"""
+    url = (
+        f"{gitlab_url}/api/v4/projects/{project_id}/"
+        f"pipelines/{pipeline_id}/jobs"
+    )
+    headers = _headers(access_token)
+    async with aiohttp.ClientSession() as session:
+        params = {"per_page": 100}
+        async with session.get(
+            url, headers=headers, params=params
+        ) as response:
+            return (
+                response.status,
+                await response.json(),
+                await response.text()
+            )
+
+
+async def get_job_trace(
+    gitlab_url, project_id, access_token, job_id
+):
+    """Get the trace/log output for a specific job"""
+    url = (
+        f"{gitlab_url}/api/v4/projects/{project_id}/"
+        f"jobs/{job_id}/trace"
+    )
+    headers = _headers(access_token)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            return (
+                response.status,
+                await response.text(),
+                response.status
+            )
+
+
+async def get_pipeline_test_report(
+    gitlab_url, project_id, access_token, pipeline_id
+):
+    """Get test report for a specific pipeline"""
+    url = (
+        f"{gitlab_url}/api/v4/projects/{project_id}/"
+        f"pipelines/{pipeline_id}/test_report"
+    )
+    headers = _headers(access_token)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            return (
+                response.status,
+                await response.json(),
+                await response.text()
+            )
+
+
+async def get_pipeline_test_report_summary(
+    gitlab_url, project_id, access_token, pipeline_id
+):
+    """Get test report summary for a specific pipeline"""
+    url = (
+        f"{gitlab_url}/api/v4/projects/{project_id}/"
+        f"pipelines/{pipeline_id}/test_report_summary"
+    )
+    headers = _headers(access_token)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            return (
+                response.status,
+                await response.json(),
+                await response.text()
+            )
+
+
 async def get_merge_request_changes(
     gitlab_url, project_id, access_token, mr_iid
 ):
