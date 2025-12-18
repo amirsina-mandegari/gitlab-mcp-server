@@ -6,7 +6,8 @@ from typing import Any, Dict, List
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND, JSONRPCError, TextContent, Tool
+from mcp.shared.exceptions import McpError
+from mcp.types import INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND, ErrorData, TextContent, Tool
 
 from config import get_gitlab_config
 from logging_config import configure_logging
@@ -294,7 +295,7 @@ class GitLabMCPServer:
                     "get_commit_discussions",
                 ]:
                     logging.warning(f"Unknown tool called: {name}")
-                    raise JSONRPCError(METHOD_NOT_FOUND, f"Unknown tool: {name}")
+                    raise McpError(error=ErrorData(code=METHOD_NOT_FOUND, message=f"Unknown tool: {name}"))
 
                 if name == "list_merge_requests":
                     return await list_merge_requests(
@@ -345,14 +346,12 @@ class GitLabMCPServer:
                         self.config["gitlab_url"], self.config["project_id"], self.config["access_token"], arguments
                     )
 
-            except JSONRPCError:
-                raise
             except ValueError as e:
                 logging.error(f"Validation error in {name}: {e}")
-                raise JSONRPCError(INVALID_PARAMS, f"Invalid parameters: {str(e)}")
+                raise McpError(error=ErrorData(code=INVALID_PARAMS, message=f"Invalid parameters: {str(e)}"))
             except Exception as e:
                 logging.error(f"Unexpected error in call_tool for {name}: {e}", exc_info=True)
-                raise JSONRPCError(INTERNAL_ERROR, f"Internal server error: {str(e)}")
+                raise McpError(error=ErrorData(code=INTERNAL_ERROR, message=f"Internal server error: {str(e)}"))
 
     async def run(self):
         logging.info("Starting MCP stdio server")
