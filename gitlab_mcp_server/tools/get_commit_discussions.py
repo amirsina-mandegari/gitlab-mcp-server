@@ -2,8 +2,8 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import get_merge_request_commits, get_merge_request_discussions_paginated
-from utils import format_date
+from gitlab_mcp_server.gitlab_api import get_merge_request_commits, get_merge_request_discussions_paginated
+from gitlab_mcp_server.utils import format_date
 
 
 async def get_commit_discussions(gitlab_url, project_id, access_token, args):

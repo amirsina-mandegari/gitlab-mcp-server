@@ -2,9 +2,9 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import get_merge_request_pipeline as api_get_merge_request_pipeline
-from gitlab_api import get_pipeline_jobs
-from utils import format_date, get_pipeline_status_icon
+from gitlab_mcp_server.gitlab_api import get_merge_request_pipeline as api_get_merge_request_pipeline
+from gitlab_mcp_server.gitlab_api import get_pipeline_jobs
+from gitlab_mcp_server.utils import format_date, get_pipeline_status_icon
 
 
 async def get_merge_request_pipeline(gitlab_url, project_id, access_token, args):

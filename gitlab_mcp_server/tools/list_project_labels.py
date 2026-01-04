@@ -2,7 +2,7 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import get_project_labels as api_get_project_labels
+from gitlab_mcp_server.gitlab_api import get_project_labels as api_get_project_labels
 
 
 async def list_project_labels(gitlab_url, project_id, access_token, args):

@@ -9,9 +9,9 @@ from mcp.server.stdio import stdio_server
 from mcp.shared.exceptions import McpError
 from mcp.types import INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND, ErrorData, TextContent, Tool
 
-from config import get_gitlab_config
-from logging_config import configure_logging
-from tools import (
+from gitlab_mcp_server.config import get_gitlab_config
+from gitlab_mcp_server.logging_config import configure_logging
+from gitlab_mcp_server.tools import (
     create_merge_request,
     create_review_comment,
     get_branch_merge_requests,
@@ -554,5 +554,10 @@ async def main():
         return 1
 
 
+def main_sync():
+    """Synchronous entry point for console script."""
+    return asyncio.run(main())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main_sync()

@@ -2,8 +2,8 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import get_merge_request_details, get_project_labels, get_project_members
-from gitlab_api import update_merge_request as api_update_merge_request
+from gitlab_mcp_server.gitlab_api import get_merge_request_details, get_project_labels, get_project_members
+from gitlab_mcp_server.gitlab_api import update_merge_request as api_update_merge_request
 
 
 def apply_draft_to_title(title, draft):

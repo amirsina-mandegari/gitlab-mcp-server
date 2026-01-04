@@ -3,9 +3,13 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import get_merge_request_changes, get_merge_request_details, get_merge_request_pipeline
-from gitlab_api import get_merge_request_reviews as api_get_merge_request_reviews
-from utils import (
+from gitlab_mcp_server.gitlab_api import (
+    get_merge_request_changes,
+    get_merge_request_details,
+    get_merge_request_pipeline,
+)
+from gitlab_mcp_server.gitlab_api import get_merge_request_reviews as api_get_merge_request_reviews
+from gitlab_mcp_server.utils import (
     analyze_mr_readiness,
     calculate_change_stats,
     format_date,

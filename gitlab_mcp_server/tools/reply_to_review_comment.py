@@ -2,7 +2,7 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import (
+from gitlab_mcp_server.gitlab_api import (
     create_merge_request_discussion,
     reply_to_merge_request_discussion,
     resolve_merge_request_discussion,

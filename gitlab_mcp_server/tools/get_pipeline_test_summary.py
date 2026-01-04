@@ -2,7 +2,7 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import get_merge_request_pipeline, get_pipeline_test_report_summary
+from gitlab_mcp_server.gitlab_api import get_merge_request_pipeline, get_pipeline_test_report_summary
 
 
 async def get_pipeline_test_summary(gitlab_url, project_id, access_token, args):

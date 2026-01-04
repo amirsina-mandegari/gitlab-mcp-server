@@ -2,7 +2,7 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import get_project_members as api_get_project_members
+from gitlab_mcp_server.gitlab_api import get_project_members as api_get_project_members
 
 ACCESS_LEVEL_MAP = {
     10: "Guest",
