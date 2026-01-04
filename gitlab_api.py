@@ -285,3 +285,103 @@ async def get_merge_request_discussions_paginated(gitlab_url, project_id, access
                 page += 1
 
         return (200, all_discussions, "Success")
+
+
+async def get_project_members(gitlab_url, project_id, access_token):
+    """Get all project members including inherited from groups"""
+    url = f"{gitlab_url}/api/v4/projects/{project_id}/members/all"
+    headers = _headers(access_token)
+    all_members = []
+    page = 1
+    per_page = 100
+
+    async with aiohttp.ClientSession() as session:
+        while True:
+            params = {"page": page, "per_page": per_page}
+            async with session.get(url, headers=headers, params=params) as response:
+                if response.status != 200:
+                    return (response.status, await response.json(), await response.text())
+
+                members = await response.json()
+                if not members:
+                    break
+
+                all_members.extend(members)
+
+                if len(members) < per_page:
+                    break
+
+                page += 1
+
+        return (200, all_members, "Success")
+
+
+async def get_project_labels(gitlab_url, project_id, access_token):
+    """Get all project labels including inherited from groups"""
+    url = f"{gitlab_url}/api/v4/projects/{project_id}/labels"
+    headers = _headers(access_token)
+    all_labels = []
+    page = 1
+    per_page = 100
+
+    async with aiohttp.ClientSession() as session:
+        while True:
+            params = {"page": page, "per_page": per_page, "include_ancestor_groups": "true"}
+            async with session.get(url, headers=headers, params=params) as response:
+                if response.status != 200:
+                    return (response.status, await response.json(), await response.text())
+
+                labels = await response.json()
+                if not labels:
+                    break
+
+                all_labels.extend(labels)
+
+                if len(labels) < per_page:
+                    break
+
+                page += 1
+
+        return (200, all_labels, "Success")
+
+
+async def create_merge_request(gitlab_url, project_id, access_token, data):
+    """Create a new merge request"""
+    url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests"
+    headers = _headers(access_token)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            json_data = await response.json() if response.content_type == "application/json" else {}
+            return (response.status, json_data, await response.text())
+
+
+async def update_merge_request(gitlab_url, project_id, access_token, mr_iid, data):
+    """Update an existing merge request"""
+    url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}"
+    headers = _headers(access_token)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.put(url, headers=headers, json=data) as response:
+            json_data = await response.json() if response.content_type == "application/json" else {}
+            return (response.status, json_data, await response.text())
+
+
+async def create_project_label(gitlab_url, project_id, access_token, name, color=None, description=None):
+    """Create a new project label"""
+    url = f"{gitlab_url}/api/v4/projects/{project_id}/labels"
+    headers = _headers(access_token)
+
+    data = {"name": name}
+    if color:
+        data["color"] = color
+    else:
+        # Default to a random nice color
+        data["color"] = "#428BCA"  # Nice blue
+    if description:
+        data["description"] = description
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            json_data = await response.json() if response.content_type == "application/json" else {}
+            return (response.status, json_data, await response.text())

@@ -12,6 +12,7 @@ from mcp.types import INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND, ErrorDat
 from config import get_gitlab_config
 from logging_config import configure_logging
 from tools import (
+    create_merge_request,
     create_review_comment,
     get_branch_merge_requests,
     get_commit_discussions,
@@ -22,8 +23,11 @@ from tools import (
     get_merge_request_test_report,
     get_pipeline_test_summary,
     list_merge_requests,
+    list_project_labels,
+    list_project_members,
     reply_to_review_comment,
     resolve_review_discussion,
+    update_merge_request,
 )
 
 
@@ -270,6 +274,152 @@ class GitLabMCPServer:
                         "additionalProperties": False,
                     },
                 ),
+                Tool(
+                    name="list_project_members",
+                    description=(
+                        "List all project members with their usernames, IDs, and access levels. "
+                        "Use this to find users for assigning or reviewing merge requests."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="list_project_labels",
+                    description=(
+                        "List all available labels in the project, including inherited group labels. "
+                        "Use this to discover valid labels for merge requests."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="create_merge_request",
+                    description=(
+                        "Create a new merge request from source branch to target branch. "
+                        "Accepts usernames (e.g., 'john.doe' or '@john.doe') for assignees and reviewers."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "source_branch": {
+                                "type": "string",
+                                "description": "The source branch name",
+                            },
+                            "target_branch": {
+                                "type": "string",
+                                "description": "The target branch name (e.g., 'main', 'develop')",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "Title of the merge request",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Description/body of the merge request (optional)",
+                            },
+                            "draft": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "Create as draft/WIP merge request",
+                            },
+                            "squash": {
+                                "type": "boolean",
+                                "description": "Squash commits when merging (optional)",
+                            },
+                            "remove_source_branch": {
+                                "type": "boolean",
+                                "description": "Remove source branch after merge (optional)",
+                            },
+                            "labels": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Labels to apply (optional)",
+                            },
+                            "create_missing_labels": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "Create labels if they don't exist (default: false)",
+                            },
+                            "assignees": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Usernames to assign (e.g., ['john.doe', 'jane.smith'])",
+                            },
+                            "reviewers": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Usernames to request review from",
+                            },
+                        },
+                        "required": ["source_branch", "target_branch", "title"],
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="update_merge_request",
+                    description=(
+                        "Update an existing merge request. Can change assignees, reviewers, "
+                        "labels, title, description, draft status, and more. "
+                        "Pass empty arrays to clear assignees/reviewers/labels."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "merge_request_iid": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": "Internal ID of the merge request to update",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "New title (optional)",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "New description (optional)",
+                            },
+                            "target_branch": {
+                                "type": "string",
+                                "description": "New target branch (optional)",
+                            },
+                            "draft": {
+                                "type": "boolean",
+                                "description": "Set draft status (true=draft, false=ready)",
+                            },
+                            "squash": {
+                                "type": "boolean",
+                                "description": "Squash commits when merging",
+                            },
+                            "remove_source_branch": {
+                                "type": "boolean",
+                                "description": "Remove source branch after merge",
+                            },
+                            "labels": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Labels to set (replaces existing). Empty array clears labels.",
+                            },
+                            "assignees": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Usernames to assign (replaces existing). Empty array clears.",
+                            },
+                            "reviewers": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Usernames for review (replaces existing). Empty array clears.",
+                            },
+                        },
+                        "required": ["merge_request_iid"],
+                        "additionalProperties": False,
+                    },
+                ),
             ]
             tool_names = [t.name for t in tools]
             logging.info(f"Returning {len(tools)} tools: {tool_names}")
@@ -293,6 +443,10 @@ class GitLabMCPServer:
                     "create_review_comment",
                     "resolve_review_discussion",
                     "get_commit_discussions",
+                    "list_project_members",
+                    "list_project_labels",
+                    "create_merge_request",
+                    "update_merge_request",
                 ]:
                     logging.warning(f"Unknown tool called: {name}")
                     raise McpError(error=ErrorData(code=METHOD_NOT_FOUND, message=f"Unknown tool: {name}"))
@@ -343,6 +497,22 @@ class GitLabMCPServer:
                     )
                 elif name == "get_commit_discussions":
                     return await get_commit_discussions(
+                        self.config["gitlab_url"], self.config["project_id"], self.config["access_token"], arguments
+                    )
+                elif name == "list_project_members":
+                    return await list_project_members(
+                        self.config["gitlab_url"], self.config["project_id"], self.config["access_token"], arguments
+                    )
+                elif name == "list_project_labels":
+                    return await list_project_labels(
+                        self.config["gitlab_url"], self.config["project_id"], self.config["access_token"], arguments
+                    )
+                elif name == "create_merge_request":
+                    return await create_merge_request(
+                        self.config["gitlab_url"], self.config["project_id"], self.config["access_token"], arguments
+                    )
+                elif name == "update_merge_request":
+                    return await update_merge_request(
                         self.config["gitlab_url"], self.config["project_id"], self.config["access_token"], arguments
                     )
 
