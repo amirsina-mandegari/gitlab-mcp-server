@@ -27,6 +27,9 @@ Connect your AI assistant to GitLab. Ask questions like _"List open merge reques
 # Using pipx (recommended)
 pipx install gitlab-mr-mcp
 
+# Or using uv
+uv tool install gitlab-mr-mcp
+
 # Or using pip
 pip install gitlab-mr-mcp
 ```
