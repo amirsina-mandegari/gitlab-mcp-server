@@ -313,6 +313,8 @@ export GITLAB_URL=https://gitlab.com
 | ------------------------------- | --------------------------------- | ------------------------------------------------ |
 | `list_merge_requests`           | List merge requests               | `state`, `target_branch`, `limit`                |
 | `get_merge_request_details`     | Get MR details                    | `merge_request_iid`                              |
+| `create_merge_request`          | Create a new merge request        | `source_branch`, `target_branch`, `title`, etc.  |
+| `update_merge_request`          | Update an existing merge request  | `merge_request_iid`, `title`, `assignees`, etc.  |
 | `get_pipeline_test_summary`     | Get test summary (fast overview)  | `merge_request_iid`                              |
 | `get_merge_request_test_report` | Get detailed test failure reports | `merge_request_iid`                              |
 | `get_merge_request_pipeline`    | Get pipeline with all jobs        | `merge_request_iid`                              |
@@ -323,6 +325,8 @@ export GITLAB_URL=https://gitlab.com
 | `reply_to_review_comment`       | Reply to existing discussion      | `merge_request_iid`, `discussion_id`, `body`     |
 | `create_review_comment`         | Create new discussion thread      | `merge_request_iid`, `body`                      |
 | `resolve_review_discussion`     | Resolve/unresolve discussion      | `merge_request_iid`, `discussion_id`, `resolved` |
+| `list_project_members`          | List project members              | (none)                                           |
+| `list_project_labels`           | List project labels               | (none)                                           |
 
 ## Development
 
