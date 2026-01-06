@@ -1,6 +1,6 @@
 [project]
-name = "gitlab-mcp-server"
-version = "0.1.0"
+name = "gitlab-mr-mcp"
+version = "0.1.1"
 description = "Connect your AI assistant to GitLab via MCP"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -19,10 +19,10 @@ Connect your AI assistant to GitLab. Ask questions like _"List open merge reques
 
 ```bash
 # Using pipx (recommended)
-pipx install gitlab-mcp-server
+pipx install gitlab-mr-mcp
 
 # Or using pip
-pip install gitlab-mcp-server
+pip install gitlab-mr-mcp
 ```
 
 ### Get your GitLab token
@@ -359,33 +359,29 @@ uv pip compile --extra dev pyproject.toml -o dev-requirements.txt
 ### Project Structure
 
 ```
-gitlab-mcp-server/
-├── main.py              # MCP server entry point
+gitlab_mcp_server/
+├── __init__.py          # Package version
+├── __main__.py          # Entry point for python -m
+├── server.py            # MCP server implementation
 ├── config.py            # Configuration management
 ├── gitlab_api.py        # GitLab API client
 ├── utils.py             # Utility functions
 ├── logging_config.py    # Logging configuration
-├── run-mcp.sh          # Launch script
-└── tools/              # Tool implementations package
-    ├── __init__.py         # Package initialization
+└── tools/               # Tool implementations
+    ├── __init__.py
     ├── list_merge_requests.py
     ├── get_merge_request_details.py
-    ├── get_merge_request_test_report.py
-    ├── get_pipeline_test_summary.py
-    ├── get_merge_request_pipeline.py
-    ├── get_job_log.py
-    ├── get_merge_request_reviews.py
-    ├── get_commit_discussions.py
-    ├── get_branch_merge_requests.py
-    └── reply_to_review_comment.py
+    ├── create_merge_request.py
+    ├── update_merge_request.py
+    └── ... (more tools)
 ```
 
 ### Adding Tools
 
-1. Create new file in `tools/` directory
-2. Add import and export to `tools/__init__.py`
-3. Add to `list_tools()` in `main.py`
-4. Add handler to `call_tool()` in `main.py`
+1. Create new file in `gitlab_mcp_server/tools/` directory
+2. Add import and export to `gitlab_mcp_server/tools/__init__.py`
+3. Add to `list_tools()` in `gitlab_mcp_server/server.py`
+4. Add handler to `call_tool()` in `gitlab_mcp_server/server.py`
 
 ### Development Setup
 
