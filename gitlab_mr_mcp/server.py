@@ -9,9 +9,9 @@ from mcp.server.stdio import stdio_server
 from mcp.shared.exceptions import McpError
 from mcp.types import INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND, ErrorData, TextContent, Tool
 
-from gitlab_mcp_server.config import get_gitlab_config
-from gitlab_mcp_server.logging_config import configure_logging
-from gitlab_mcp_server.tools import (
+from gitlab_mr_mcp.config import get_gitlab_config
+from gitlab_mr_mcp.logging_config import configure_logging
+from gitlab_mr_mcp.tools import (
     create_merge_request,
     create_review_comment,
     get_branch_merge_requests,

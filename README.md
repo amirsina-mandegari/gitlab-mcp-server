@@ -359,7 +359,7 @@ uv pip compile --extra dev pyproject.toml -o dev-requirements.txt
 ### Project Structure
 
 ```
-gitlab_mcp_server/
+gitlab_mr_mcp/
 ├── __init__.py          # Package version
 ├── __main__.py          # Entry point for python -m
 ├── server.py            # MCP server implementation
@@ -378,10 +378,10 @@ gitlab_mcp_server/
 
 ### Adding Tools
 
-1. Create new file in `gitlab_mcp_server/tools/` directory
-2. Add import and export to `gitlab_mcp_server/tools/__init__.py`
-3. Add to `list_tools()` in `gitlab_mcp_server/server.py`
-4. Add handler to `call_tool()` in `gitlab_mcp_server/server.py`
+1. Create new file in `gitlab_mr_mcp/tools/` directory
+2. Add import and export to `gitlab_mr_mcp/tools/__init__.py`
+3. Add to `list_tools()` in `gitlab_mr_mcp/server.py`
+4. Add handler to `call_tool()` in `gitlab_mr_mcp/server.py`
 
 ### Development Setup
 
