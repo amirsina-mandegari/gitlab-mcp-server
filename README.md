@@ -15,66 +15,42 @@ Connect your AI assistant to GitLab. Ask questions like _"List open merge reques
 
 ## Quick Setup
 
-### Prerequisites
-
-This project uses [uv](https://github.com/astral-sh/uv) for fast and reliable Python package management.
-
-**Install uv:**
-
-```bash
-# macOS and Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Windows
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-# Or with pip
-pip install uv
-```
-
 ### Installation
 
-1. **Install the server:**
+```bash
+# Using pipx (recommended)
+pipx install gitlab-mcp-server
 
-   ```bash
-   git clone https://github.com/amirsina-mandegari/gitlab-mcp-server.git
-   cd gitlab-mcp-server
-   uv venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   uv pip install -e .
-   chmod +x run-mcp.sh
-   ```
+# Or using pip
+pip install gitlab-mcp-server
+```
 
-2. **Get your GitLab token:**
+### Get your GitLab token
 
-   - Go to GitLab → Settings → Access Tokens
-   - Create token with **`read_api`** scope
-   - Copy the token
+1. Go to GitLab → Settings → Access Tokens
+2. Create token with **`read_api`** scope (add `api` scope if you want write access)
+3. Copy the token
 
-3. **Configure your project:**
-   In your project directory, create `gitlab-mcp.env`:
+### Configure your MCP client
 
-   ```env
-   GITLAB_PROJECT_ID=12345
-   GITLAB_ACCESS_TOKEN=glpat-xxxxxxxxxxxxxxxxxxxx
-   GITLAB_URL=https://gitlab.com
-   ```
+Add to your MCP config (e.g., `.cursor/mcp.json` for Cursor):
 
-4. **Connect to Cursor:**
-   Create `.cursor/mcp.json` in your project:
+```json
+{
+  "mcpServers": {
+    "gitlab-mcp": {
+      "command": "gitlab-mcp",
+      "env": {
+        "GITLAB_URL": "https://gitlab.com",
+        "GITLAB_ACCESS_TOKEN": "glpat-xxxxxxxxxxxxxxxxxxxx",
+        "GITLAB_PROJECT_ID": "12345"
+      }
+    }
+  }
+}
+```
 
-   ```json
-   {
-     "mcpServers": {
-       "gitlab-mcp": {
-         "command": "/path/to/gitlab-mcp-server/run-mcp.sh",
-         "cwd": "/path/to/your-project"
-       }
-     }
-   }
-   ```
-
-5. **Restart Cursor** and start asking GitLab questions!
+Restart your MCP client and start asking GitLab questions!
 
 ## What You Can Do
 

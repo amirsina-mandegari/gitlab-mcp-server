@@ -4,8 +4,11 @@ version = "0.1.0"
 description = "Connect your AI assistant to GitLab via MCP"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
-keywords = ["gitlab", "mcp", "ai", "assistant", "merge-request"]
+license = {file = "LICENSE"}
+authors = [
+    {name = "Amirsina Mandegari", email = "mandegari.amirsina@gmail.com"},
+]
+keywords = ["gitlab", "mcp", "ai", "assistant", "merge-request", "model-context-protocol"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -38,8 +41,10 @@ dev = [
 gitlab-mcp = "gitlab_mcp_server.server:main_sync"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/gitlab-mcp-server"
-Repository = "https://github.com/yourusername/gitlab-mcp-server"
+Homepage = "https://github.com/amirsina-mandegari/gitlab-mcp-server"
+Repository = "https://github.com/amirsina-mandegari/gitlab-mcp-server"
+Documentation = "https://github.com/amirsina-mandegari/gitlab-mcp-server#readme"
+Issues = "https://github.com/amirsina-mandegari/gitlab-mcp-server/issues"
 
 [build-system]
 requires = ["hatchling"]
