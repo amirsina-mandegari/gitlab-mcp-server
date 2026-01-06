@@ -41,10 +41,10 @@ dev = [
 gitlab-mcp = "gitlab_mcp_server.server:main_sync"
 
 [project.urls]
-Homepage = "https://github.com/amirsina-mandegari/gitlab-mcp-server"
-Repository = "https://github.com/amirsina-mandegari/gitlab-mcp-server"
-Documentation = "https://github.com/amirsina-mandegari/gitlab-mcp-server#readme"
-Issues = "https://github.com/amirsina-mandegari/gitlab-mcp-server/issues"
+Homepage = "https://github.com/amirsina-mandegari/gitlab-mr-mcp"
+Repository = "https://github.com/amirsina-mandegari/gitlab-mr-mcp"
+Documentation = "https://github.com/amirsina-mandegari/gitlab-mr-mcp#readme"
+Issues = "https://github.com/amirsina-mandegari/gitlab-mr-mcp/issues"
 
 [build-system]
 requires = ["hatchling"]

@@ -440,7 +440,7 @@ python test_tools.py
 ## Support
 
 - Check [GitLab API documentation](https://docs.gitlab.com/ee/api/)
-- Open issues at [github.com/amirsina-mandegari/gitlab-mcp-server](https://github.com/amirsina-mandegari/gitlab-mcp-server)
+- Open issues at [github.com/amirsina-mandegari/gitlab-mr-mcp](https://github.com/amirsina-mandegari/gitlab-mr-mcp)
 
 ## License
 
