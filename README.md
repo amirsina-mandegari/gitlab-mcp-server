@@ -1,4 +1,10 @@
-# GitLab MCP Server
+# GitLab MR MCP
+
+[![CI](https://github.com/amirsina-mandegari/gitlab-mr-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/amirsina-mandegari/gitlab-mr-mcp/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/gitlab-mr-mcp.svg)](https://pypi.org/project/gitlab-mr-mcp/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/gitlab-mr-mcp.svg)](https://pypi.org/project/gitlab-mr-mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Connect your AI assistant to GitLab. Ask questions like _"List open merge requests"_, _"Show me reviews for MR #123"_, _"Get commit discussions for MR #456"_, or _"Find merge requests for the feature branch"_ directly in your chat.
 
@@ -15,66 +21,47 @@ Connect your AI assistant to GitLab. Ask questions like _"List open merge reques
 
 ## Quick Setup
 
-### Prerequisites
-
-This project uses [uv](https://github.com/astral-sh/uv) for fast and reliable Python package management.
-
-**Install uv:**
-
-```bash
-# macOS and Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Windows
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-# Or with pip
-pip install uv
-```
-
 ### Installation
 
-1. **Install the server:**
+```bash
+# Using pipx (recommended)
+pipx install gitlab-mr-mcp
 
-   ```bash
-   git clone https://github.com/amirsina-mandegari/gitlab-mcp-server.git
-   cd gitlab-mcp-server
-   uv venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   uv pip install -e .
-   chmod +x run-mcp.sh
-   ```
+# Or using uv
+uv tool install gitlab-mr-mcp
 
-2. **Get your GitLab token:**
+# Or using pip
+pip install gitlab-mr-mcp
+```
 
-   - Go to GitLab → Settings → Access Tokens
-   - Create token with **`read_api`** scope
-   - Copy the token
+> **Note:** Using `pipx` or `uv tool` is recommended as they automatically add the `gitlab-mcp` command to your PATH. If using `pip install`, ensure your Python scripts directory is in PATH, or use the full path to the command.
 
-3. **Configure your project:**
-   In your project directory, create `gitlab-mcp.env`:
+### Get your GitLab token
 
-   ```env
-   GITLAB_PROJECT_ID=12345
-   GITLAB_ACCESS_TOKEN=glpat-xxxxxxxxxxxxxxxxxxxx
-   GITLAB_URL=https://gitlab.com
-   ```
+1. Go to GitLab → Settings → Access Tokens
+2. Create token with **`read_api`** scope (add `api` scope if you want write access)
+3. Copy the token
 
-4. **Connect to Cursor:**
-   Create `.cursor/mcp.json` in your project:
+### Configure your MCP client
 
-   ```json
-   {
-     "mcpServers": {
-       "gitlab-mcp": {
-         "command": "/path/to/gitlab-mcp-server/run-mcp.sh",
-         "cwd": "/path/to/your-project"
-       }
-     }
-   }
-   ```
+Add to your MCP config (e.g., `.cursor/mcp.json` for Cursor):
 
-5. **Restart Cursor** and start asking GitLab questions!
+```json
+{
+  "mcpServers": {
+    "gitlab-mcp": {
+      "command": "gitlab-mcp",
+      "env": {
+        "GITLAB_URL": "https://gitlab.com",
+        "GITLAB_ACCESS_TOKEN": "glpat-xxxxxxxxxxxxxxxxxxxx",
+        "GITLAB_PROJECT_ID": "12345"
+      }
+    }
+  }
+}
+```
+
+Restart your MCP client and start asking GitLab questions!
 
 ## What You Can Do
 
@@ -296,13 +283,13 @@ The output includes:
 
 ## Configuration Options
 
-### Project-Level (Recommended)
+### MCP Config (Recommended)
 
-Each project gets its own `gitlab-mcp.env` file with its own GitLab configuration. Keep tokens out of version control.
+Configure environment variables directly in your MCP client config as shown in [Quick Setup](#quick-setup). This keeps project-specific settings with the project.
 
-### Global Configuration
+### Environment Variables
 
-Set environment variables system-wide instead of per-project:
+Alternatively, set environment variables in your shell:
 
 ```bash
 export GITLAB_PROJECT_ID=12345
@@ -331,6 +318,8 @@ export GITLAB_URL=https://gitlab.com
 | ------------------------------- | --------------------------------- | ------------------------------------------------ |
 | `list_merge_requests`           | List merge requests               | `state`, `target_branch`, `limit`                |
 | `get_merge_request_details`     | Get MR details                    | `merge_request_iid`                              |
+| `create_merge_request`          | Create a new merge request        | `source_branch`, `target_branch`, `title`, etc.  |
+| `update_merge_request`          | Update an existing merge request  | `merge_request_iid`, `title`, `assignees`, etc.  |
 | `get_pipeline_test_summary`     | Get test summary (fast overview)  | `merge_request_iid`                              |
 | `get_merge_request_test_report` | Get detailed test failure reports | `merge_request_iid`                              |
 | `get_merge_request_pipeline`    | Get pipeline with all jobs        | `merge_request_iid`                              |
@@ -341,75 +330,37 @@ export GITLAB_URL=https://gitlab.com
 | `reply_to_review_comment`       | Reply to existing discussion      | `merge_request_iid`, `discussion_id`, `body`     |
 | `create_review_comment`         | Create new discussion thread      | `merge_request_iid`, `body`                      |
 | `resolve_review_discussion`     | Resolve/unresolve discussion      | `merge_request_iid`, `discussion_id`, `resolved` |
-
-## Migrating from pip to uv
-
-If you have an existing installation using pip, here's how to migrate to uv:
-
-1. **Install uv** (see Prerequisites section above)
-
-2. **Remove the old virtual environment:**
-
-   ```bash
-   deactivate  # If you have a venv activated
-   rm -rf .venv
-   ```
-
-3. **Create a new virtual environment with uv:**
-
-   ```bash
-   uv venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   uv pip install -e .
-   ```
-
-4. **For development, install dev dependencies:**
-
-   ```bash
-   uv pip install -e ".[dev]"
-   ```
-
-That's it! Your project is now using uv for faster and more reliable dependency management.
-
-**Note:** The `requirements.txt` and `dev-requirements.txt` files are kept for backward compatibility. However, `pyproject.toml` is now the source of truth for dependencies. If you add new dependencies, update `pyproject.toml` and regenerate the requirements files if needed:
-
-```bash
-uv pip compile pyproject.toml -o requirements.txt
-uv pip compile --extra dev pyproject.toml -o dev-requirements.txt
-```
+| `list_project_members`          | List project members              | (none)                                           |
+| `list_project_labels`           | List project labels               | (none)                                           |
 
 ## Development
 
 ### Project Structure
 
 ```
-gitlab-mcp-server/
-├── main.py              # MCP server entry point
+gitlab_mr_mcp/
+├── __init__.py          # Package version
+├── __main__.py          # Entry point for python -m
+├── server.py            # MCP server implementation
 ├── config.py            # Configuration management
 ├── gitlab_api.py        # GitLab API client
 ├── utils.py             # Utility functions
 ├── logging_config.py    # Logging configuration
-├── run-mcp.sh          # Launch script
-└── tools/              # Tool implementations package
-    ├── __init__.py         # Package initialization
+└── tools/               # Tool implementations
+    ├── __init__.py
     ├── list_merge_requests.py
     ├── get_merge_request_details.py
-    ├── get_merge_request_test_report.py
-    ├── get_pipeline_test_summary.py
-    ├── get_merge_request_pipeline.py
-    ├── get_job_log.py
-    ├── get_merge_request_reviews.py
-    ├── get_commit_discussions.py
-    ├── get_branch_merge_requests.py
-    └── reply_to_review_comment.py
+    ├── create_merge_request.py
+    ├── update_merge_request.py
+    └── ... (more tools)
 ```
 
 ### Adding Tools
 
-1. Create new file in `tools/` directory
-2. Add import and export to `tools/__init__.py`
-3. Add to `list_tools()` in `main.py`
-4. Add handler to `call_tool()` in `main.py`
+1. Create new file in `gitlab_mr_mcp/tools/` directory
+2. Add import and export to `gitlab_mr_mcp/tools/__init__.py`
+3. Add to `list_tools()` in `gitlab_mr_mcp/server.py`
+4. Add handler to `call_tool()` in `gitlab_mr_mcp/server.py`
 
 ### Development Setup
 
@@ -452,23 +403,30 @@ isort --profile black --line-length=120 .
 pre-commit run --all-files
 ```
 
-### Testing
+### Running Tests
 
 ```bash
-python test_tools.py
+# Install dev dependencies
+pip install -e ".[dev]"
+
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
 ```
 
 ## Security Notes
 
-- Add `gitlab-mcp.env` to your `.gitignore`
-- Never commit access tokens
-- Use project-specific tokens with minimal permissions
+- Never commit access tokens to version control
+- Use project-specific tokens with minimal permissions (`read_api` scope)
 - Rotate tokens regularly
+- Store tokens in your MCP config (which should not be committed)
 
 ## Support
 
 - Check [GitLab API documentation](https://docs.gitlab.com/ee/api/)
-- Open issues at [github.com/amirsina-mandegari/gitlab-mcp-server](https://github.com/amirsina-mandegari/gitlab-mcp-server)
+- Open issues at [github.com/amirsina-mandegari/gitlab-mr-mcp](https://github.com/amirsina-mandegari/gitlab-mr-mcp)
 
 ## License
 

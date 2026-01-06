@@ -2,7 +2,7 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import get_job_trace
+from gitlab_mr_mcp.gitlab_api import get_job_trace
 
 
 async def get_job_log(gitlab_url, project_id, access_token, args):

@@ -1,46 +1,31 @@
 [project]
-name = "gitlab-mcp-server"
-version = "0.1.0"
+name = "gitlab-mr-mcp"
+version = "1.0.0"
 description = "Connect your AI assistant to GitLab via MCP"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Amirsina Mandegari", email = "mandegari.amirsina@gmail.com"},
+]
+keywords = ["gitlab", "mcp", "ai", "assistant", "merge-request", "model-context-protocol"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
 dependencies = [
-    "aiohappyeyeballs==2.6.1",
-    "aiohttp==3.12.14",
-    "aiosignal==1.4.0",
-    "annotated-types==0.7.0",
-    "anyio==4.9.0",
-    "attrs==25.3.0",
-    "certifi==2025.7.14",
-    "click==8.2.1",
-    "frozenlist==1.7.0",
-    "h11==0.16.0",
-    "httpcore==1.0.9",
-    "httpx==0.28.1",
-    "httpx-sse==0.4.1",
-    "idna==3.10",
-    "jsonschema==4.24.0",
-    "jsonschema-specifications==2025.4.1",
-    "mcp==1.11.0",
-    "multidict==6.6.3",
-    "propcache==0.3.2",
-    "pydantic==2.11.7",
-    "pydantic-settings==2.10.1",
-    "pydantic-core==2.33.2",
-    "python-dotenv==1.1.1",
-    "python-multipart==0.0.20",
-    "python-decouple",
-    "referencing==0.36.2",
-    "rpds-py==0.26.0",
-    "setuptools==62.1.0",
-    "sniffio==1.3.1",
-    "sse-starlette==2.4.1",
-    "starlette==0.47.1",
-    "typing-inspection==0.4.1",
-    "typing-extensions==4.14.1",
-    "uvicorn==0.35.0",
-    "wheel==0.37.1",
-    "yarl==1.20.1",
+    "aiohttp>=3.9.0",
+    "mcp>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-decouple>=3.8",
 ]
 
 [project.optional-dependencies]
@@ -52,19 +37,26 @@ dev = [
     "black>=24.0.0",
     "isort>=5.13.0",
     "bandit>=1.7.7",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.12.0",
 ]
+
+[project.scripts]
+gitlab-mcp = "gitlab_mr_mcp.server:main_sync"
+
+[project.urls]
+Homepage = "https://github.com/amirsina-mandegari/gitlab-mr-mcp"
+Repository = "https://github.com/amirsina-mandegari/gitlab-mr-mcp"
+Documentation = "https://github.com/amirsina-mandegari/gitlab-mr-mcp#readme"
+Issues = "https://github.com/amirsina-mandegari/gitlab-mr-mcp/issues"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["tools"]
-# Include the root-level Python modules
-include = [
-    "*.py",
-    "tools/**/*.py",
-]
+packages = ["gitlab_mr_mcp"]
 
 # Configuration for Python code formatting and linting tools
 
@@ -96,14 +88,3 @@ include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
-
-[tool.uv]
-dev-dependencies = [
-    "pre-commit>=3.6.0",
-    "flake8>=7.0.0",
-    "flake8-bugbear>=24.0.0",
-    "flake8-print>=5.0.0",
-    "black>=24.0.0",
-    "isort>=5.13.0",
-    "bandit>=1.7.7",
-]

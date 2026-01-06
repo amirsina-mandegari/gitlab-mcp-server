@@ -3,8 +3,8 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import get_merge_request_changes, get_merge_request_pipeline, get_merge_requests
-from utils import (
+from gitlab_mr_mcp.gitlab_api import get_merge_request_changes, get_merge_request_pipeline, get_merge_requests
+from gitlab_mr_mcp.utils import (
     analyze_mr_readiness,
     calculate_change_stats,
     format_date,

@@ -2,8 +2,8 @@ import logging
 
 from mcp.types import TextContent
 
-from gitlab_api import create_merge_request as api_create_merge_request
-from gitlab_api import create_project_label, get_project_labels, get_project_members
+from gitlab_mr_mcp.gitlab_api import create_merge_request as api_create_merge_request
+from gitlab_mr_mcp.gitlab_api import create_project_label, get_project_labels, get_project_members
 
 
 async def resolve_labels(gitlab_url, project_id, access_token, requested_labels, create_missing=False):

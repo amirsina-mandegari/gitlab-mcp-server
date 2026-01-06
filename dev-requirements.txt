@@ -1,8 +1,0 @@
-# Development dependencies
-pre-commit>=3.6.0
-flake8>=7.0.0
-flake8-bugbear>=24.0.0
-flake8-print>=5.0.0
-black>=24.0.0
-isort>=5.13.0
-bandit>=1.7.7
