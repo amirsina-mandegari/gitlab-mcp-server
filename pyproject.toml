@@ -1,6 +1,6 @@
 [project]
 name = "gitlab-mr-mcp"
-version = "0.1.1"
+version = "1.0.0"
 description = "Connect your AI assistant to GitLab via MCP"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -59,7 +59,7 @@ packages = ["gitlab_mcp_server"]
 
 [tool.black]
 line-length = 120
-target-version = ['py310', 'py311', 'py312', 'py313', 'py314']
+target-version = ['py310', 'py311', 'py312']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
