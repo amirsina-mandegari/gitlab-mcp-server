@@ -278,13 +278,13 @@ The output includes:
 
 ## Configuration Options
 
-### Project-Level (Recommended)
+### MCP Config (Recommended)
 
-Each project gets its own `gitlab-mcp.env` file with its own GitLab configuration. Keep tokens out of version control.
+Configure environment variables directly in your MCP client config as shown in [Quick Setup](#quick-setup). This keeps project-specific settings with the project.
 
-### Global Configuration
+### Environment Variables
 
-Set environment variables system-wide instead of per-project:
+Alternatively, set environment variables in your shell:
 
 ```bash
 export GITLAB_PROJECT_ID=12345
@@ -323,42 +323,6 @@ export GITLAB_URL=https://gitlab.com
 | `reply_to_review_comment`       | Reply to existing discussion      | `merge_request_iid`, `discussion_id`, `body`     |
 | `create_review_comment`         | Create new discussion thread      | `merge_request_iid`, `body`                      |
 | `resolve_review_discussion`     | Resolve/unresolve discussion      | `merge_request_iid`, `discussion_id`, `resolved` |
-
-## Migrating from pip to uv
-
-If you have an existing installation using pip, here's how to migrate to uv:
-
-1. **Install uv** (see Prerequisites section above)
-
-2. **Remove the old virtual environment:**
-
-   ```bash
-   deactivate  # If you have a venv activated
-   rm -rf .venv
-   ```
-
-3. **Create a new virtual environment with uv:**
-
-   ```bash
-   uv venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   uv pip install -e .
-   ```
-
-4. **For development, install dev dependencies:**
-
-   ```bash
-   uv pip install -e ".[dev]"
-   ```
-
-That's it! Your project is now using uv for faster and more reliable dependency management.
-
-**Note:** The `requirements.txt` and `dev-requirements.txt` files are kept for backward compatibility. However, `pyproject.toml` is now the source of truth for dependencies. If you add new dependencies, update `pyproject.toml` and regenerate the requirements files if needed:
-
-```bash
-uv pip compile pyproject.toml -o requirements.txt
-uv pip compile --extra dev pyproject.toml -o dev-requirements.txt
-```
 
 ## Development
 
@@ -430,18 +394,25 @@ isort --profile black --line-length=120 .
 pre-commit run --all-files
 ```
 
-### Testing
+### Running Tests
 
 ```bash
-python test_tools.py
+# Install dev dependencies
+pip install -e ".[dev]"
+
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
 ```
 
 ## Security Notes
 
-- Add `gitlab-mcp.env` to your `.gitignore`
-- Never commit access tokens
-- Use project-specific tokens with minimal permissions
+- Never commit access tokens to version control
+- Use project-specific tokens with minimal permissions (`read_api` scope)
 - Rotate tokens regularly
+- Store tokens in your MCP config (which should not be committed)
 
 ## Support
 
