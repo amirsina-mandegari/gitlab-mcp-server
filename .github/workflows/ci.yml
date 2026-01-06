@@ -21,13 +21,16 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: |
+          uv venv
+          uv pip install -e ".[dev]"
 
       - name: Run linters
         run: |
-          uv run flake8 gitlab_mcp_server/
-          uv run black --check gitlab_mcp_server/
-          uv run isort --check gitlab_mcp_server/
+          source .venv/bin/activate
+          flake8 gitlab_mcp_server/
+          black --check gitlab_mcp_server/
+          isort --check gitlab_mcp_server/
 
   build:
     runs-on: ubuntu-latest
