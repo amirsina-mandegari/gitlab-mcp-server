@@ -1,4 +1,10 @@
-# GitLab MCP Server
+# GitLab MR MCP
+
+[![CI](https://github.com/amirsina-mandegari/gitlab-mr-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/amirsina-mandegari/gitlab-mr-mcp/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/gitlab-mr-mcp.svg)](https://pypi.org/project/gitlab-mr-mcp/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/gitlab-mr-mcp.svg)](https://pypi.org/project/gitlab-mr-mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Connect your AI assistant to GitLab. Ask questions like _"List open merge requests"_, _"Show me reviews for MR #123"_, _"Get commit discussions for MR #456"_, or _"Find merge requests for the feature branch"_ directly in your chat.
 
