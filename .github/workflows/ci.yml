@@ -54,6 +54,11 @@ jobs:
       - name: Test install
         run: |
           uv venv
-          uv pip install dist/*.whl
+          uv pip install "dist/*.whl[dev]"
           # Verify the command exists
           .venv/bin/gitlab-mcp --help 2>&1 || echo "MCP server started (no --help expected)"
+
+      - name: Run tests
+        run: |
+          source .venv/bin/activate
+          pytest tests/ -v
