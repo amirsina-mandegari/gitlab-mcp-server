@@ -54,7 +54,9 @@ jobs:
       - name: Test install
         run: |
           uv venv
-          uv pip install "dist/*.whl[dev]"
+          # Install the built wheel with dev dependencies
+          WHEEL=$(ls dist/*.whl)
+          uv pip install "${WHEEL}[dev]"
           # Verify the command exists
           .venv/bin/gitlab-mcp --help 2>&1 || echo "MCP server started (no --help expected)"
 
