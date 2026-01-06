@@ -34,6 +34,8 @@ uv tool install gitlab-mr-mcp
 pip install gitlab-mr-mcp
 ```
 
+> **Note:** Using `pipx` or `uv tool` is recommended as they automatically add the `gitlab-mcp` command to your PATH. If using `pip install`, ensure your Python scripts directory is in PATH, or use the full path to the command.
+
 ### Get your GitLab token
 
 1. Go to GitLab → Settings → Access Tokens
