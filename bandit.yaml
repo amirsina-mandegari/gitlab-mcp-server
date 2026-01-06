@@ -3,9 +3,10 @@
 
 # Exclude paths
 exclude_dirs:
-  - /tests/
-  - /.venv/
-  - /venv/
+  - tests
+  - .venv
+  - venv
+  - .venv-test
   - __pycache__
 
 # Skip certain tests
