@@ -81,6 +81,9 @@ Once connected, try these commands in your chat:
 - _"Reply to discussion abc123 in MR #456 with 'Thanks for the feedback!'"_
 - _"Create a new review comment in MR #789 asking about the error handling"_
 - _"Resolve discussion def456 in MR #123"_
+- _"Approve merge request #456"_
+- _"Merge MR #123 with squash"_
+- _"Merge MR #789 when pipeline succeeds"_
 
 ## Working with Review Comments
 
@@ -110,6 +113,38 @@ The enhanced review tools allow you to interact with merge request discussions:
    ```
 
 **Note**: The `get_merge_request_reviews` tool now displays discussion IDs and note IDs in the output, making it easy to reference specific discussions when replying or resolving.
+
+## Approving and Merging
+
+Complete the MR lifecycle with approval and merge tools:
+
+1. **Approve a merge request**:
+
+   ```
+   "Approve MR #123"
+   ```
+
+2. **Merge with options**:
+
+   ```
+   "Merge MR #456 with squash"
+   "Merge MR #789 and remove source branch"
+   "Merge MR #123 when pipeline succeeds"
+   ```
+
+3. **Revoke approval** (if needed):
+   ```
+   "Unapprove MR #456"
+   ```
+
+**Merge Options:**
+
+- `squash` - Squash commits into a single commit
+- `should_remove_source_branch` - Delete source branch after merge
+- `merge_when_pipeline_succeeds` - Auto-merge when pipeline passes
+- `sha` - Ensure HEAD hasn't changed (safety check)
+
+**Note**: You cannot approve your own MRs. The merge will fail if the MR has conflicts, is in draft status, or doesn't meet approval requirements.
 
 ## Working with Test Reports (Recommended for Test Failures)
 
@@ -327,6 +362,9 @@ export GITLAB_URL=https://gitlab.com
 | `get_merge_request_details`     | Get MR details                    | `merge_request_iid`                              |
 | `create_merge_request`          | Create a new merge request        | `source_branch`, `target_branch`, `title`, etc.  |
 | `update_merge_request`          | Update an existing merge request  | `merge_request_iid`, `title`, `assignees`, etc.  |
+| `merge_merge_request`           | Merge an MR                       | `merge_request_iid`, `squash`, `sha`, etc.       |
+| `approve_merge_request`         | Approve an MR                     | `merge_request_iid`, `sha`                       |
+| `unapprove_merge_request`       | Revoke approval from an MR        | `merge_request_iid`                              |
 | `get_pipeline_test_summary`     | Get test summary (fast overview)  | `merge_request_iid`                              |
 | `get_merge_request_test_report` | Get detailed test failure reports | `merge_request_iid`                              |
 | `get_merge_request_pipeline`    | Get pipeline with all jobs        | `merge_request_iid`                              |

@@ -367,6 +367,42 @@ async def update_merge_request(gitlab_url, project_id, access_token, mr_iid, dat
             return (response.status, json_data, await response.text())
 
 
+async def merge_merge_request(gitlab_url, project_id, access_token, mr_iid, data=None):
+    """Merge a merge request"""
+    url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}/merge"
+    headers = _headers(access_token)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.put(url, headers=headers, json=data or {}) as response:
+            json_data = await response.json() if response.content_type == "application/json" else {}
+            return (response.status, json_data, await response.text())
+
+
+async def approve_merge_request(gitlab_url, project_id, access_token, mr_iid, sha=None):
+    """Approve a merge request"""
+    url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}/approve"
+    headers = _headers(access_token)
+    data = {}
+    if sha:
+        data["sha"] = sha
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            json_data = await response.json() if response.content_type == "application/json" else {}
+            return (response.status, json_data, await response.text())
+
+
+async def unapprove_merge_request(gitlab_url, project_id, access_token, mr_iid):
+    """Unapprove a merge request"""
+    url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}/unapprove"
+    headers = _headers(access_token)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers) as response:
+            json_data = await response.json() if response.content_type == "application/json" else {}
+            return (response.status, json_data, await response.text())
+
+
 async def create_project_label(gitlab_url, project_id, access_token, name, color=None, description=None):
     """Create a new project label"""
     url = f"{gitlab_url}/api/v4/projects/{project_id}/labels"
