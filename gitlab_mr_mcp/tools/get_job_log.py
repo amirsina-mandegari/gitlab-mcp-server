@@ -21,33 +21,31 @@ async def get_job_log(gitlab_url, project_id, access_token, args):
         raise Exception(f"Error fetching job log: {status} - {error}")
 
     if not log_data or len(log_data.strip()) == 0:
-        result = f"# 📋 Job Log (Job ID: {job_id})\n\n"
-        result += "ℹ️ No log output available for this job.\n\n"
-        result += "This could mean:\n"
-        result += "• The job hasn't started yet\n"
-        result += "• The job was skipped\n"
-        result += "• The log has been archived or deleted\n"
+        result = f"# Job Log (ID: {job_id})\n\n"
+        result += "No log output available.\n\n"
+        result += "Possible reasons:\n"
+        result += "- Job hasn't started yet\n"
+        result += "- Job was skipped\n"
+        result += "- Log has been archived or deleted\n"
         return [TextContent(type="text", text=result)]
 
-    # Format the output
-    result = f"# 📋 Job Log (Job ID: {job_id})\n\n"
+    # Format output
+    result = f"# Job Log (ID: {job_id})\n\n"
 
-    # Add log size info
     log_size_kb = len(log_data) / 1024
-    result += f"**📊 Log Size**: {log_size_kb:.2f} KB\n"
-    result += f"**📄 Lines**: {log_data.count(chr(10)) + 1}\n\n"
+    line_count = log_data.count(chr(10)) + 1
+    result += f"**Size**: {log_size_kb:.1f} KB | **Lines**: {line_count}\n\n"
 
-    # Check if we need to truncate
-    max_chars = 15000  # Keep logs reasonable for context
+    # Truncate if needed
+    max_chars = 15000
     if len(log_data) > max_chars:
-        result += "## 📝 Job Output (Last 15,000 characters)\n\n"
+        result += "## Output (last 15,000 characters)\n\n"
         result += "```\n"
         result += log_data[-max_chars:]
         result += "\n```\n\n"
-        result += f"*⚠️ Note: Log truncated from {len(log_data):,} to "
-        result += f"{max_chars:,} characters (showing last portion)*\n"
+        result += f"*Truncated from {len(log_data):,} characters*\n"
     else:
-        result += "## 📝 Job Output\n\n"
+        result += "## Output\n\n"
         result += "```\n"
         result += log_data
         result += "\n```\n"

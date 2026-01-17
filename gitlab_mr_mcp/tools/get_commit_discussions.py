@@ -16,22 +16,23 @@ async def get_commit_discussions(gitlab_url, project_id, access_token, args):
         commits_status, commits_data, commits_error = commits_result
 
         if commits_status != 200:
-            logging.error(f"Error fetching merge request commits: " f"{commits_status} - {commits_error}")
-            raise Exception(f"Error fetching merge request commits: {commits_error}")
+            logging.error(f"Error fetching commits: {commits_status} - {commits_error}")
+            raise Exception(f"Error fetching commits: {commits_error}")
 
         if not commits_data:
             return [TextContent(type="text", text="No commits found in this merge request.")]
 
-        logging.info(f"Getting ALL MR discussions for MR #{mr_iid}...")
+        # Get all MR discussions
         discussions_result = await get_merge_request_discussions_paginated(gitlab_url, project_id, access_token, mr_iid)
         discussions_status, discussions_data, discussions_error = discussions_result
 
         if discussions_status != 200:
-            logging.error(f"Error fetching MR discussions: " f"{discussions_status} - {discussions_error}")
+            logging.error(f"Error fetching discussions: {discussions_status} - {discussions_error}")
             discussions_data = []
 
         commit_map = {commit["id"]: commit for commit in commits_data}
 
+        # Find discussions linked to commits
         commits_with_discussions = {}
         total_discussions = 0
 
@@ -49,57 +50,50 @@ async def get_commit_discussions(gitlab_url, project_id, access_token, args):
                         )
                         total_discussions += 1
 
+        # Format output
+        result = f"# Commit Discussions for MR !{mr_iid}\n\n"
+        result += "## Summary\n\n"
+        result += f"- Total commits: {len(commits_data)}\n"
+        result += f"- Commits with discussions: {len(commits_with_discussions)}\n"
+        result += f"- Line-level discussions: {total_discussions}\n"
+        result += f"- Total MR discussions: {len(discussions_data)}\n\n"
+
         if not commits_with_discussions:
-            summary_text = (
-                f"## Commit Discussions for MR #{mr_iid}\n\n"
-                f"**Summary:**\n"
-                f"- Total commits: {len(commits_data)}\n"
-                f"- Commits with discussions: 0\n"
-                f"- Total discussions: 0\n\n"
-                f"No line-level discussions found on any commits in this "
-                f"merge request. Found {len(discussions_data)} total MR discussions."
-            )
-            return [TextContent(type="text", text=summary_text)]
+            result += "No line-level discussions found on any commits.\n"
+            return [TextContent(type="text", text=result)]
 
-        response_text = (
-            f"## Commit Discussions for MR #{mr_iid}\n\n"
-            f"**Summary:**\n"
-            f"- Total commits: {len(commits_data)}\n"
-            f"- Commits with discussions: {len(commits_with_discussions)}\n"
-            f"- Total line-level discussions: {total_discussions}\n"
-            f"- Total MR discussions: {len(discussions_data)}\n\n"
-        )
-
+        # Show discussions by commit
         for _commit_sha, item in commits_with_discussions.items():
             commit = item["commit"]
             discussions = item["discussions"]
 
-            response_text += f"### 📝 Commit: {commit['short_id']}\n"
-            response_text += f"**Title:** {commit['title']}\n"
-            response_text += f"**Author:** {commit['author_name']}\n"
-            response_text += f"**Date:** {format_date(commit['committed_date'])}\n"
-            response_text += f"**SHA:** `{commit['id']}`\n\n"
+            result += f"## Commit: {commit['short_id']}\n\n"
+            result += f"**Title**: {commit['title']}\n"
+            result += f"**Author**: {commit['author_name']}\n"
+            result += f"**Date**: {format_date(commit['committed_date'])}\n"
+            result += f"**SHA**: `{commit['id']}`\n\n"
 
-            for discussion_item in discussions:
-                discussion_id = discussion_item["discussion_id"]
-                note = discussion_item["note"]
-                position = discussion_item["position"]
+            for disc_item in discussions:
+                discussion_id = disc_item["discussion_id"]
+                note = disc_item["note"]
+                position = disc_item["position"]
 
-                author_name = note["author"]["name"]
-                response_text += f"**💬 Comment by {author_name}:**\n"
-                response_text += f"{note['body']}\n"
+                author = note["author"]
+                result += f"### Comment by {author['name']} (@{author['username']})\n\n"
+                result += f"{note['body']}\n\n"
 
                 if position.get("new_path"):
-                    line_info = position.get("new_line", "N/A")
-                    response_text += f"*On file: {position['new_path']} " f"(line {line_info})*\n"
+                    result += f"**File**: `{position['new_path']}`"
+                    if position.get("new_line"):
+                        result += f" line {position['new_line']}"
+                    result += "\n"
 
-                created_at = format_date(note["created_at"])
-                response_text += f"*Posted: {created_at}*\n"
-                response_text += f"*Discussion ID: {discussion_id}*\n\n"
+                result += f"**Posted**: {format_date(note['created_at'])}\n"
+                result += f"**Discussion ID**: `{discussion_id}`\n\n"
 
-            response_text += "---\n\n"
+            result += "---\n\n"
 
-        return [TextContent(type="text", text=response_text)]
+        return [TextContent(type="text", text=result)]
 
     except Exception as e:
         logging.error(f"Error in get_commit_discussions: {str(e)}")

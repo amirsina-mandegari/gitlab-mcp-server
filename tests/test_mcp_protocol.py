@@ -54,7 +54,7 @@ def test_mcp_list_tools_response():
     env["GITLAB_ACCESS_TOKEN"] = "test-token"
     env["GITLAB_PROJECT_ID"] = "123"
 
-    # Send initialize + list_tools
+    # Send initialize + initialized notification + list_tools
     requests = (
         json.dumps(
             {
@@ -68,6 +68,8 @@ def test_mcp_list_tools_response():
                 },
             }
         )
+        + "\n"
+        + json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"})
         + "\n"
         + json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
     )
@@ -129,6 +131,8 @@ def test_mcp_tool_has_schema():
                 },
             }
         )
+        + "\n"
+        + json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"})
         + "\n"
         + json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
     )

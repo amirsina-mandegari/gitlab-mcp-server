@@ -9,127 +9,92 @@ from gitlab_mr_mcp.utils import (
     analyze_mr_readiness,
     calculate_change_stats,
     format_date,
-    get_mr_priority,
+    format_user,
     get_pipeline_status_icon,
-    get_state_explanation,
 )
 
 
-def get_review_type_icon(note):
-    """Get appropriate icon for review type"""
-    if note.get("resolvable"):
-        return "💬"
-    elif note.get("position"):
-        return "📝"
-    elif "approved" in note.get("body", "").lower():
-        return "✅"
-    elif any(word in note.get("body", "").lower() for word in ["reject", "needs work", "changes requested"]):
-        return "❌"
-    else:
-        return "💭"
-
-
-def get_approval_summary(approvals):
-    """Generate enhanced approval summary"""
+def format_approval_summary(approvals):
+    """Generate approval summary"""
     if not approvals:
-        return "## 👥 Approvals\n❓ No approval information available\n\n"
+        return "No approval information available\n"
 
-    result = "## 👥 Approvals\n"
-
+    result = ""
     approved_by = approvals.get("approved_by", [])
     approvals_required = approvals.get("approvals_required", 0)
     approvals_left = approvals.get("approvals_left", 0)
 
     if approved_by:
-        result += f"**✅ Approved by ({len(approved_by)} reviewer"
-        result += f"{'s' if len(approved_by) > 1 else ''}):**\n"
-        for approval in approved_by:
-            user = approval["user"]
-            result += f"  • **{user['name']}** (@{user['username']})\n"
-        result += "\n"
+        approvers = ", ".join(f"@{a['user']['username']}" for a in approved_by)
+        result += f"**Approved by**: {approvers}\n"
 
     if approvals_required > 0:
         if approvals_left == 0:
-            status = "✅ Approval requirements met"
+            result += "**Status**: All required approvals received\n"
         else:
-            plural = "s" if approvals_left > 1 else ""
-            status = f"⏳ {approvals_left} approval{plural} needed"
-        result += f"**Status**: {status}\n"
-        received_count = len(approved_by)
-        result += f"**Required**: {approvals_required} | **Received**: {received_count}\n\n"
+            result += f"**Status**: {approvals_left} more approval(s) needed\n"
+        result += f"**Required**: {approvals_required} | **Received**: {len(approved_by)}\n"
     elif not approved_by:
-        result += "📝 No approvals yet\n\n"
+        result += "No approvals yet\n"
 
     return result
 
 
-def get_discussion_summary(discussions):
-    """Generate enhanced discussion summary with counts and status"""
+def format_discussion_summary(discussions):
+    """Generate discussion summary"""
     if not discussions:
-        return "## 💬 Discussions\n❓ No discussion information available\n\n"
+        return "No discussions found\n"
 
-    total_discussions = len(discussions)
-    resolved_count = sum(1 for d in discussions if d.get("resolved"))
-    unresolved_count = total_discussions - resolved_count
+    total = len(discussions)
+    resolved = sum(1 for d in discussions if d.get("resolved"))
+    unresolved = total - resolved
 
-    result = "## 💬 Discussions & Reviews\n"
-    result += (
-        f"**Total**: {total_discussions} | **Resolved**: {resolved_count} | " f"**Unresolved**: {unresolved_count}\n\n"
-    )
+    result = f"**Total**: {total} | **Resolved**: {resolved} | **Unresolved**: {unresolved}\n"
 
-    if unresolved_count > 0:
-        plural = "s" if unresolved_count > 1 else ""
-        result += f"⚠️ **{unresolved_count} unresolved discussion{plural}** " "- action needed\n\n"
-    elif total_discussions > 0:
-        result += "✅ All discussions resolved\n\n"
+    if unresolved > 0:
+        result += f"\n**{unresolved} unresolved discussion(s)** require attention\n"
 
     return result
 
 
 def format_discussion_thread(discussion):
-    """Format a single discussion thread with enhanced formatting"""
+    """Format a single discussion thread"""
     if not discussion.get("notes"):
         return ""
 
     result = ""
-    thread_resolved = discussion.get("resolved", False)
-    thread_icon = "✅" if thread_resolved else "🟡"
+    is_resolved = discussion.get("resolved", False)
     discussion_id = discussion.get("id", "unknown")
+    status = "Resolved" if is_resolved else "Unresolved"
 
-    result += f"### {thread_icon} Discussion Thread\n"
-    result += f"**Discussion ID**: `{discussion_id}`\n"
-    if thread_resolved:
-        result += "*Resolved*\n"
-    else:
-        result += "*Unresolved*\n"
+    result += f"### Discussion `{discussion_id}` [{status}]\n\n"
 
     for note in discussion["notes"]:
         if note.get("system"):
             continue
 
-        author_name = note["author"]["name"]
-        author_username = note["author"]["username"]
-        note_icon = get_review_type_icon(note)
+        author = format_user(note.get("author"))
         note_id = note.get("id", "unknown")
+        timestamp = format_date(note.get("created_at"))
 
-        result += f"\n{note_icon} **{author_name}** (@{author_username})\n"
-        timestamp = format_date(note["created_at"])
-        result += f"*{timestamp}* | Note ID: `{note_id}`\n"
+        result += f"**{author}** ({timestamp}) [note: `{note_id}`]\n"
 
+        # Position info for inline comments
         if note.get("position"):
             pos = note["position"]
             if pos.get("new_path"):
-                result += f"📁 **File**: `{pos['new_path']}`\n"
+                result += f"File: `{pos['new_path']}`"
                 if pos.get("new_line"):
-                    result += f"📍 **Line**: {pos['new_line']}\n"
+                    result += f" line {pos['new_line']}"
+                result += "\n"
 
         body = note.get("body", "").strip()
         if body:
             result += f"\n{body}\n"
 
-        result += "\n---\n"
+        result += "\n"
 
-    return result + "\n"
+    return result
 
 
 async def get_merge_request_reviews(gitlab_url, project_id, access_token, args):
@@ -150,28 +115,24 @@ async def get_merge_request_reviews(gitlab_url, project_id, access_token, args):
         raise Exception(f"Error fetching merge request data: {e}")
 
     discussions_status, discussions, discussions_text = reviews_result["discussions"]
-    approvals_status, approvals, approvals_text = reviews_result["approvals"]
+    approvals_status, approvals, _approvals_text = reviews_result["approvals"]
 
-    details_status, mr_details, details_text = details_result
-    pipeline_status, pipeline_data, pipeline_text = pipeline_result
-    changes_status, changes_data, changes_text = changes_result
+    details_status, mr_details, _details_text = details_result
+    pipeline_status, pipeline_data, _pipeline_text = pipeline_result
+    changes_status, changes_data, _changes_text = changes_result
 
     if discussions_status != 200:
         logging.error(f"Error fetching discussions {discussions_status}: {discussions_text}")
         raise Exception(f"Error fetching discussions: {discussions_status} - {discussions_text}")
 
-    result = f"# 🔍 Reviews & Discussions for MR !{mr_iid}\n\n"
+    result = f"# Reviews for MR !{mr_iid}\n\n"
 
+    # MR Overview
     if details_status == 200:
-        result += "## 📋 Merge Request Overview\n"
+        result += "## Overview\n\n"
         result += f"**Title**: {mr_details.get('title', 'N/A')}\n"
-        state = mr_details.get("state", "N/A")
-        result += f"**Status**: {state} ({get_state_explanation(state)})\n"
-        author = mr_details.get("author", {})
-        author_name = author.get("name", "N/A")
-        author_username = author.get("username", "N/A")
-        result += f"**Author**: {author_name} (@{author_username})\n"
-        result += f"**Priority**: {get_mr_priority(mr_details)}\n"
+        result += f"**Author**: {format_user(mr_details.get('author'))}\n"
+        result += f"**State**: {mr_details.get('state', 'N/A')}\n"
 
         if pipeline_status == 200 and pipeline_data:
             pipeline_icon = get_pipeline_status_icon(pipeline_data.get("status"))
@@ -183,47 +144,48 @@ async def get_merge_request_reviews(gitlab_url, project_id, access_token, args):
 
         readiness = analyze_mr_readiness(mr_details, pipeline_data, approvals)
         result += f"**Merge Status**: {readiness}\n"
+        result += "\n"
 
-        result += f"**Updated**: {format_date(mr_details.get('updated_at', 'N/A'))}\n\n"
+    # Approvals
+    result += "## Approvals\n\n"
+    result += format_approval_summary(approvals)
+    result += "\n"
 
-    result += get_approval_summary(approvals)
+    # Discussions summary
+    result += "## Discussions\n\n"
+    result += format_discussion_summary(discussions)
+    result += "\n"
 
-    result += get_discussion_summary(discussions)
-
+    # Detailed discussions
     if discussions:
-        result += "## 📝 Detailed Discussions\n\n"
+        result += "## Discussion Details\n\n"
         for discussion in discussions:
             thread_content = format_discussion_thread(discussion)
             if thread_content:
                 result += thread_content
-    else:
-        result += "💬 No discussions found\n\n"
+                result += "---\n\n"
 
-    result += "## 📊 Action Items\n"
+    # Action items
+    result += "## Action Items\n\n"
     action_items = []
 
     if discussions:
-        unresolved_count = sum(1 for d in discussions if not d.get("resolved"))
-        if unresolved_count > 0:
-            action_items.append(
-                f"🟡 Resolve {unresolved_count} pending discussion{'s' if unresolved_count > 1 else ''}"
-            )
+        unresolved = sum(1 for d in discussions if not d.get("resolved"))
+        if unresolved > 0:
+            action_items.append(f"- Resolve {unresolved} pending discussion(s)")
 
     if approvals and approvals.get("approvals_left", 0) > 0:
-        action_items.append(
-            f"👥 Obtain {approvals['approvals_left']} more approval{'s' if approvals['approvals_left'] > 1 else ''}"
-        )
+        action_items.append(f"- Get {approvals['approvals_left']} more approval(s)")
 
     if pipeline_status == 200 and pipeline_data and pipeline_data.get("status") == "failed":
-        action_items.append("❌ Fix failing pipeline")
+        action_items.append("- Fix failing pipeline")
 
     if details_status == 200 and mr_details.get("has_conflicts"):
-        action_items.append("⚠️ Resolve merge conflicts")
+        action_items.append("- Resolve merge conflicts")
 
     if action_items:
-        for item in action_items:
-            result += f"• {item}\n"
+        result += "\n".join(action_items) + "\n"
     else:
-        result += "✅ No action items - ready for next steps\n"
+        result += "No action items - ready for next steps\n"
 
     return [TextContent(type="text", text=result)]

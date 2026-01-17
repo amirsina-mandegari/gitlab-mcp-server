@@ -7,11 +7,7 @@ from gitlab_mr_mcp.gitlab_api import create_project_label, get_project_labels, g
 
 
 async def resolve_labels(gitlab_url, project_id, access_token, requested_labels, create_missing=False):
-    """Resolve label names case-insensitively against existing project labels.
-
-    If create_missing=True, creates labels that don't exist.
-    If create_missing=False, raises ValueError for missing labels.
-    """
+    """Resolve label names case-insensitively against existing project labels."""
     if not requested_labels:
         return [], []
 
@@ -20,7 +16,6 @@ async def resolve_labels(gitlab_url, project_id, access_token, requested_labels,
     if status != 200:
         raise Exception(f"Failed to fetch project labels: {error}")
 
-    # Build case-insensitive lookup: lowercase -> actual name
     label_lookup = {label["name"].lower(): label["name"] for label in labels}
 
     resolved = []
@@ -36,14 +31,12 @@ async def resolve_labels(gitlab_url, project_id, access_token, requested_labels,
 
     if not_found:
         if create_missing:
-            # Create the missing labels
             for label_name in not_found:
                 status, data, error = await create_project_label(gitlab_url, project_id, access_token, label_name)
                 if status == 201:
                     created.append(data.get("name", label_name))
                     resolved.append(data.get("name", label_name))
                 elif status == 409:
-                    # Label already exists (race condition), use as-is
                     resolved.append(label_name)
                 else:
                     raise Exception(f"Failed to create label '{label_name}': {error}")
@@ -74,7 +67,6 @@ async def resolve_usernames_to_ids(gitlab_url, project_id, access_token, usernam
     not_found = []
 
     for username in usernames:
-        # Strip @ prefix if present
         clean_username = username.lstrip("@").lower()
         if clean_username in username_to_id:
             resolved_ids.append(username_to_id[clean_username])
@@ -88,12 +80,7 @@ async def resolve_usernames_to_ids(gitlab_url, project_id, access_token, usernam
 
 
 def apply_draft_to_title(title, draft):
-    """Apply or remove Draft: prefix based on draft flag.
-
-    GitLab's draft API param is unreliable across versions.
-    The title prefix is the guaranteed method.
-    """
-    # Remove existing draft/wip prefixes first (case-insensitive)
+    """Apply or remove Draft: prefix based on draft flag."""
     clean_title = title
     for prefix in ["Draft: ", "Draft:", "WIP: ", "WIP:", "draft: ", "draft:", "wip: ", "wip:"]:
         if clean_title.startswith(prefix):
@@ -120,18 +107,16 @@ async def create_merge_request(gitlab_url, project_id, access_token, args):
     if not title:
         raise ValueError("title is required")
 
-    # Handle draft status via title prefix (more reliable than API param)
+    # Handle draft status via title prefix
     if args.get("draft", False):
         title = apply_draft_to_title(title, draft=True)
 
-    # Build the MR data
     mr_data = {
         "source_branch": source_branch,
         "target_branch": target_branch,
         "title": title,
     }
 
-    # Optional fields
     if args.get("description"):
         mr_data["description"] = args["description"]
 
@@ -141,7 +126,7 @@ async def create_merge_request(gitlab_url, project_id, access_token, args):
     if args.get("remove_source_branch") is not None:
         mr_data["remove_source_branch"] = args["remove_source_branch"]
 
-    # Resolve labels (case-insensitive validation)
+    # Resolve labels
     created_labels = []
     if args.get("labels"):
         resolved_labels, created_labels = await resolve_labels(
@@ -154,13 +139,13 @@ async def create_merge_request(gitlab_url, project_id, access_token, args):
         if resolved_labels:
             mr_data["labels"] = ",".join(resolved_labels)
 
-    # Resolve assignees (usernames → IDs)
+    # Resolve assignees
     if args.get("assignees"):
         assignee_ids = await resolve_usernames_to_ids(gitlab_url, project_id, access_token, args["assignees"])
         if assignee_ids:
             mr_data["assignee_ids"] = assignee_ids
 
-    # Resolve reviewers (usernames → IDs)
+    # Resolve reviewers
     if args.get("reviewers"):
         reviewer_ids = await resolve_usernames_to_ids(gitlab_url, project_id, access_token, args["reviewers"])
         if reviewer_ids:
@@ -173,37 +158,37 @@ async def create_merge_request(gitlab_url, project_id, access_token, args):
         mr_url = data.get("web_url")
         mr_title = data.get("title")
 
-        result = "# ✅ Merge Request Created\n\n"
+        result = "# Merge Request Created\n\n"
         result += f"**!{mr_iid}**: {mr_title}\n\n"
-        result += f"**Source**: `{source_branch}` → **Target**: `{target_branch}`\n\n"
+        result += f"**Source**: `{source_branch}` -> **Target**: `{target_branch}`\n\n"
 
         if data.get("draft"):
-            result += "📝 **Status**: Draft\n"
+            result += "**Status**: Draft\n"
 
         if data.get("assignees"):
             assignees = ", ".join(f"@{a['username']}" for a in data["assignees"])
-            result += f"👤 **Assignees**: {assignees}\n"
+            result += f"**Assignees**: {assignees}\n"
 
         if data.get("reviewers"):
             reviewers = ", ".join(f"@{r['username']}" for r in data["reviewers"])
-            result += f"👀 **Reviewers**: {reviewers}\n"
+            result += f"**Reviewers**: {reviewers}\n"
 
         if data.get("labels"):
             labels = ", ".join(f"`{label}`" for label in data["labels"])
-            result += f"🏷️ **Labels**: {labels}\n"
+            result += f"**Labels**: {labels}\n"
 
         if created_labels:
             created = ", ".join(f"`{label}`" for label in created_labels)
-            result += f"✨ **Created Labels**: {created}\n"
+            result += f"**Created Labels**: {created}\n"
 
-        result += f"\n🔗 [Open in GitLab]({mr_url})\n"
+        result += f"\n**URL**: {mr_url}\n"
 
         return [TextContent(type="text", text=result)]
+
     elif status == 409:
-        # MR already exists
         error_msg = data.get("message", error)
-        result = "# ⚠️ Merge Request Already Exists\n\n"
-        result += f"A merge request for `{source_branch}` → `{target_branch}` already exists.\n"
+        result = "# Merge Request Already Exists\n\n"
+        result += f"A merge request for `{source_branch}` -> `{target_branch}` already exists.\n"
         result += f"\n**Error**: {error_msg}\n"
         return [TextContent(type="text", text=result)]
 

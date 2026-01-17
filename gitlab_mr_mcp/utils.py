@@ -6,8 +6,8 @@ def format_date(iso_date_string):
     try:
         dt = datetime.fromisoformat(iso_date_string.replace("Z", "+00:00"))
         return dt.strftime("%Y-%m-%d %H:%M UTC")
-    except ValueError:
-        return iso_date_string
+    except (ValueError, AttributeError):
+        return str(iso_date_string) if iso_date_string else "N/A"
 
 
 def get_state_explanation(state):
@@ -23,20 +23,30 @@ def get_state_explanation(state):
 
 
 def get_pipeline_status_icon(status):
-    """Get emoji for pipeline status"""
+    """Get icon for pipeline status - minimal set"""
     if not status:
-        return "⚪"
+        return "-"
 
     icons = {
-        "success": "✅",
-        "failed": "❌",
-        "running": "🔄",
-        "pending": "⏳",
-        "canceled": "⏹️",
-        "skipped": "⏭️",
-        "manual": "👤",
+        "success": "[pass]",
+        "failed": "[FAIL]",
+        "running": "[running]",
+        "pending": "[pending]",
+        "canceled": "[canceled]",
+        "skipped": "[skipped]",
+        "manual": "[manual]",
     }
-    return icons.get(status, "❓")
+    return icons.get(status, f"[{status}]")
+
+
+def get_state_icon(state):
+    """Get icon for MR state - minimal set"""
+    icons = {
+        "merged": "[merged]",
+        "opened": "[open]",
+        "closed": "[closed]",
+    }
+    return icons.get(state, f"[{state}]")
 
 
 def calculate_change_stats(changes):
@@ -46,6 +56,7 @@ def calculate_change_stats(changes):
 
     additions = 0
     deletions = 0
+    file_count = len(changes.get("changes", []))
 
     for change in changes["changes"]:
         if "diff" in change:
@@ -56,7 +67,7 @@ def calculate_change_stats(changes):
                 elif line.startswith("-") and not line.startswith("---"):
                     deletions += 1
 
-    return f"+{additions}/-{deletions}"
+    return f"{file_count} files, +{additions}/-{deletions}"
 
 
 def analyze_mr_readiness(mr_data, pipeline_data=None, approvals=None):
@@ -64,42 +75,67 @@ def analyze_mr_readiness(mr_data, pipeline_data=None, approvals=None):
     blockers = []
 
     if mr_data.get("draft") or mr_data.get("work_in_progress"):
-        blockers.append("🚧 Draft/WIP status")
+        blockers.append("Draft/WIP")
 
     if mr_data.get("has_conflicts"):
-        blockers.append("⚠️ Merge conflicts")
+        blockers.append("Merge conflicts")
 
     if pipeline_data and pipeline_data.get("status") == "failed":
-        blockers.append("❌ Pipeline failed")
+        blockers.append("Pipeline failed")
     elif pipeline_data and pipeline_data.get("status") == "running":
-        blockers.append("🔄 Pipeline running")
+        blockers.append("Pipeline running")
 
     if approvals and "approvals_required" in approvals:
         approved_count = len(approvals.get("approved_by", []))
         required_count = approvals.get("approvals_required", 0)
         if approved_count < required_count:
-            msg = f"👥 Needs approval ({approved_count}/{required_count})"
-            blockers.append(msg)
+            blockers.append(f"Needs approval ({approved_count}/{required_count})")
 
     if mr_data.get("merge_status") == "cannot_be_merged":
-        blockers.append("🚫 Cannot be merged")
+        blockers.append("Cannot be merged")
 
     if not blockers:
-        return "✅ Ready to merge"
+        return "Ready to merge"
     else:
-        return f"🚫 Blocked by: {', '.join(blockers)}"
+        return f"Blocked: {', '.join(blockers)}"
 
 
 def get_mr_priority(mr_data):
-    """Determine MR priority based on labels and other factors"""
+    """Determine MR priority based on labels"""
     labels = mr_data.get("labels", [])
 
     for label in labels:
-        if "critical" in label.lower() or "urgent" in label.lower():
-            return "🔴 Critical"
-        elif "high" in label.lower():
-            return "🟡 High"
-        elif "low" in label.lower():
-            return "🟢 Low"
+        label_lower = label.lower()
+        if "critical" in label_lower or "urgent" in label_lower:
+            return "Critical"
+        elif "high" in label_lower:
+            return "High"
+        elif "low" in label_lower:
+            return "Low"
 
-    return "⚪ Normal"
+    return "Normal"
+
+
+def format_user(user_data):
+    """Format user info consistently"""
+    if not user_data:
+        return "Unknown"
+    name = user_data.get("name", "Unknown")
+    username = user_data.get("username", "unknown")
+    return f"{name} (@{username})"
+
+
+def format_labels(labels):
+    """Format labels consistently"""
+    if not labels:
+        return None
+    return ", ".join(f"`{label}`" for label in labels)
+
+
+def truncate_text(text, max_length=100):
+    """Truncate text with ellipsis"""
+    if not text:
+        return ""
+    if len(text) <= max_length:
+        return text
+    return text[:max_length] + "..."

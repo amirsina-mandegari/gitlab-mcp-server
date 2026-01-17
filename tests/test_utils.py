@@ -25,11 +25,11 @@ def test_format_date_invalid():
 
 def test_get_pipeline_status_icon():
     """Test pipeline status icons."""
-    assert get_pipeline_status_icon("success") == "✅"
-    assert get_pipeline_status_icon("failed") == "❌"
-    assert get_pipeline_status_icon("running") == "🔄"
-    assert get_pipeline_status_icon("pending") == "⏳"
-    assert get_pipeline_status_icon(None) == "⚪"
+    assert get_pipeline_status_icon("success") == "[pass]"
+    assert get_pipeline_status_icon("failed") == "[FAIL]"
+    assert get_pipeline_status_icon("running") == "[running]"
+    assert get_pipeline_status_icon("pending") == "[pending]"
+    assert get_pipeline_status_icon(None) == "-"
 
 
 def test_get_state_explanation():

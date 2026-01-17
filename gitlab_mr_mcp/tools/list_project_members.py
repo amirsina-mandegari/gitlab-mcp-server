@@ -23,11 +23,11 @@ async def list_project_members(gitlab_url, project_id, access_token, args):
         logging.error(f"Error fetching project members: {status} - {error}")
         raise Exception(f"Error fetching project members: {status} - {error}")
 
-    result = "# 👥 Project Members\n"
-    result += f"*Found {len(data)} member{'s' if len(data) != 1 else ''}*\n\n"
+    result = "# Project Members\n\n"
+    result += f"Found {len(data)} member(s)\n\n"
 
     if not data:
-        result += "📭 No members found.\n"
+        result += "No members found.\n"
         return [TextContent(type="text", text=result)]
 
     # Group by access level
@@ -55,12 +55,12 @@ async def list_project_members(gitlab_url, project_id, access_token, args):
             user_id = member.get("id", "?")
             state = member.get("state", "active")
 
-            state_icon = "✅" if state == "active" else "⏸️"
-            result += f"- {state_icon} **@{username}** ({name}) — ID: `{user_id}`\n"
+            status_marker = "" if state == "active" else " [inactive]"
+            result += f"- @{username} ({name}) - ID: `{user_id}`{status_marker}\n"
 
         result += "\n"
 
-    # Add any unknown access levels
+    # Unknown access levels
     for level_name, members in by_access.items():
         if level_name in level_order:
             continue
@@ -69,10 +69,10 @@ async def list_project_members(gitlab_url, project_id, access_token, args):
             username = member.get("username", "unknown")
             name = member.get("name", "Unknown")
             user_id = member.get("id", "?")
-            result += f"- **@{username}** ({name}) — ID: `{user_id}`\n"
+            result += f"- @{username} ({name}) - ID: `{user_id}`\n"
         result += "\n"
 
-    result += "---\n"
-    result += "💡 **Tip**: Use usernames (e.g., `@john.doe`) when creating merge requests.\n"
+    result += "---\n\n"
+    result += "Use usernames (e.g., `@john.doe`) when creating merge requests.\n"
 
     return [TextContent(type="text", text=result)]

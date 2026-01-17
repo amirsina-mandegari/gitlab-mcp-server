@@ -8,7 +8,6 @@ from gitlab_mr_mcp.gitlab_api import update_merge_request as api_update_merge_re
 
 def apply_draft_to_title(title, draft):
     """Apply or remove Draft: prefix based on draft flag."""
-    # Remove existing draft/wip prefixes first (case-insensitive)
     clean_title = title
     for prefix in ["Draft: ", "Draft:", "WIP: ", "WIP:", "draft: ", "draft:", "wip: ", "wip:"]:
         if clean_title.startswith(prefix):
@@ -44,7 +43,7 @@ async def resolve_labels(gitlab_url, project_id, access_token, requested_labels)
 
     if not_found:
         available = ", ".join(sorted(label_lookup.values())[:20])
-        raise ValueError(f"Labels not found: {', '.join(not_found)}. " f"Available labels (first 20): {available}")
+        raise ValueError(f"Labels not found: {', '.join(not_found)}. Available (first 20): {available}")
 
     return resolved
 
@@ -87,21 +86,17 @@ async def update_merge_request(gitlab_url, project_id, access_token, args):
 
     mr_data = {}
 
-    # Handle draft status via title prefix (more reliable than API param)
-    # If draft is being changed, we need to modify the title
+    # Handle draft status via title prefix
     if args.get("draft") is not None:
         if args.get("title"):
-            # Use the new title provided
             mr_data["title"] = apply_draft_to_title(args["title"], args["draft"])
         else:
-            # Fetch current title to modify it
             status, mr_details, error = await get_merge_request_details(gitlab_url, project_id, access_token, mr_iid)
             if status != 200:
                 raise Exception(f"Failed to fetch MR details: {error}")
             current_title = mr_details.get("title", "")
             mr_data["title"] = apply_draft_to_title(current_title, args["draft"])
     elif args.get("title"):
-        # Just updating title, no draft change
         mr_data["title"] = args["title"]
 
     if args.get("description") is not None:
@@ -116,13 +111,12 @@ async def update_merge_request(gitlab_url, project_id, access_token, args):
     if args.get("remove_source_branch") is not None:
         mr_data["remove_source_branch"] = args["remove_source_branch"]
 
-    # Resolve labels (case-insensitive)
+    # Resolve labels
     if args.get("labels") is not None:
         if args["labels"]:
             resolved_labels = await resolve_labels(gitlab_url, project_id, access_token, args["labels"])
             mr_data["labels"] = ",".join(resolved_labels)
         else:
-            # Empty list = clear labels
             mr_data["labels"] = ""
 
     # Resolve assignees
@@ -131,7 +125,6 @@ async def update_merge_request(gitlab_url, project_id, access_token, args):
             assignee_ids = await resolve_usernames_to_ids(gitlab_url, project_id, access_token, args["assignees"])
             mr_data["assignee_ids"] = assignee_ids
         else:
-            # Empty list = clear assignees
             mr_data["assignee_ids"] = []
 
     # Resolve reviewers
@@ -140,7 +133,6 @@ async def update_merge_request(gitlab_url, project_id, access_token, args):
             reviewer_ids = await resolve_usernames_to_ids(gitlab_url, project_id, access_token, args["reviewers"])
             mr_data["reviewer_ids"] = reviewer_ids
         else:
-            # Empty list = clear reviewers
             mr_data["reviewer_ids"] = []
 
     if not mr_data:
@@ -152,27 +144,27 @@ async def update_merge_request(gitlab_url, project_id, access_token, args):
         mr_title = data.get("title")
         mr_url = data.get("web_url")
 
-        result = f"# ✅ Merge Request !{mr_iid} Updated\n\n"
+        result = f"# MR !{mr_iid} Updated\n\n"
         result += f"**Title**: {mr_title}\n"
 
         if data.get("draft"):
-            result += "📝 **Status**: Draft\n"
+            result += "**Status**: Draft\n"
         else:
-            result += "🚀 **Status**: Ready\n"
+            result += "**Status**: Ready\n"
 
         if data.get("assignees"):
             assignees = ", ".join(f"@{a['username']}" for a in data["assignees"])
-            result += f"👤 **Assignees**: {assignees}\n"
+            result += f"**Assignees**: {assignees}\n"
 
         if data.get("reviewers"):
             reviewers = ", ".join(f"@{r['username']}" for r in data["reviewers"])
-            result += f"👀 **Reviewers**: {reviewers}\n"
+            result += f"**Reviewers**: {reviewers}\n"
 
         if data.get("labels"):
             labels = ", ".join(f"`{label}`" for label in data["labels"])
-            result += f"🏷️ **Labels**: {labels}\n"
+            result += f"**Labels**: {labels}\n"
 
-        result += f"\n🔗 [Open in GitLab]({mr_url})\n"
+        result += f"\n**URL**: {mr_url}\n"
 
         return [TextContent(type="text", text=result)]
 

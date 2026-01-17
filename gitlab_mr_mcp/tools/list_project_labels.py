@@ -15,14 +15,14 @@ async def list_project_labels(gitlab_url, project_id, access_token, args):
         logging.error(f"Error fetching project labels: {status} - {error}")
         raise Exception(f"Error fetching project labels: {status} - {error}")
 
-    result = "# 🏷️ Project Labels\n"
-    result += f"*Found {len(data)} label{'s' if len(data) != 1 else ''}*\n\n"
+    result = "# Project Labels\n\n"
+    result += f"Found {len(data)} label(s)\n\n"
 
     if not data:
-        result += "📭 No labels found.\n"
+        result += "No labels found.\n"
         return [TextContent(type="text", text=result)]
 
-    # Separate scoped labels (contain ::) from regular labels
+    # Separate scoped vs regular labels
     scoped_labels = []
     regular_labels = []
 
@@ -37,15 +37,14 @@ async def list_project_labels(gitlab_url, project_id, access_token, args):
         result += "## Regular Labels\n\n"
         for label in sorted(regular_labels, key=lambda x: x.get("name", "").lower()):
             name = label.get("name", "unknown")
-            color = label.get("color", "#000000")
             description = label.get("description", "")
             is_project = label.get("is_project_label", True)
             source = "project" if is_project else "group"
 
-            result += f"- `{name}` "
+            result += f"- `{name}`"
             if description:
-                result += f"— {description} "
-            result += f"({source}, {color})\n"
+                result += f" - {description}"
+            result += f" ({source})\n"
         result += "\n"
 
     if scoped_labels:
@@ -61,19 +60,18 @@ async def list_project_labels(gitlab_url, project_id, access_token, args):
             scopes[scope].append(label)
 
         for scope in sorted(scopes.keys()):
-            result += f"### {scope}\n"
+            result += f"### {scope}\n\n"
             for label in sorted(scopes[scope], key=lambda x: x.get("name", "")):
                 name = label.get("name", "unknown")
-                color = label.get("color", "#000000")
                 description = label.get("description", "")
 
-                result += f"- `{name}` "
+                result += f"- `{name}`"
                 if description:
-                    result += f"— {description} "
-                result += f"({color})\n"
+                    result += f" - {description}"
+                result += "\n"
             result += "\n"
 
-    result += "---\n"
-    result += "💡 **Tip**: Use exact label names when creating merge requests.\n"
+    result += "---\n\n"
+    result += "Use exact label names when creating merge requests.\n"
 
     return [TextContent(type="text", text=result)]

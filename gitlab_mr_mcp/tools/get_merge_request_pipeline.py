@@ -7,6 +7,17 @@ from gitlab_mr_mcp.gitlab_api import get_pipeline_jobs
 from gitlab_mr_mcp.utils import format_date, get_pipeline_status_icon
 
 
+def format_duration(seconds):
+    """Format duration in human readable form"""
+    if not seconds:
+        return "N/A"
+    mins = int(seconds) // 60
+    secs = int(seconds) % 60
+    if mins > 0:
+        return f"{mins}m {secs}s"
+    return f"{secs}s"
+
+
 async def get_merge_request_pipeline(gitlab_url, project_id, access_token, args):
     """Get the last pipeline data for a merge request with all jobs"""
     logging.info(f"get_merge_request_pipeline called with args: {args}")
@@ -25,12 +36,12 @@ async def get_merge_request_pipeline(gitlab_url, project_id, access_token, args)
         raise Exception(f"Error fetching merge request pipeline: {status} - {error}")
 
     if not pipeline_data:
-        result = f"# 🔧 Pipeline for Merge Request !{mr_iid}\n\n"
-        result += "ℹ️ No pipeline found for this merge request.\n\n"
-        result += "This could mean:\n"
-        result += "• No CI/CD is configured for this project\n"
-        result += "• The pipeline hasn't been triggered yet\n"
-        result += "• The merge request branch has no commits\n"
+        result = f"# Pipeline for MR !{mr_iid}\n\n"
+        result += "No pipeline found for this merge request.\n\n"
+        result += "Possible reasons:\n"
+        result += "- No CI/CD configured for this project\n"
+        result += "- Pipeline hasn't been triggered yet\n"
+        result += "- Branch has no commits\n"
         return [TextContent(type="text", text=result)]
 
     # Get jobs for the pipeline
@@ -48,155 +59,102 @@ async def get_merge_request_pipeline(gitlab_url, project_id, access_token, args)
             logging.warning(f"Error fetching jobs: {e}")
             jobs_data = []
 
-    # Format the pipeline data
+    # Format output
     pipeline_status = pipeline_data.get("status", "unknown")
     pipeline_icon = get_pipeline_status_icon(pipeline_status)
 
-    result = f"# {pipeline_icon} Pipeline for Merge Request !{mr_iid}\n\n"
+    result = f"# {pipeline_icon} Pipeline for MR !{mr_iid}\n\n"
 
-    result += "## 📊 Pipeline Overview\n"
-    result += f"**🆔 Pipeline ID**: #{pipeline_data.get('id', 'N/A')}\n"
-    result += f"**📊 Status**: {pipeline_icon} {pipeline_status}\n"
-    result += f"**🔗 SHA**: `{pipeline_data.get('sha', 'N/A')[:8]}`\n"
-    result += f"**🌿 Ref**: `{pipeline_data.get('ref', 'N/A')}`\n"
+    # Overview
+    result += "## Overview\n\n"
+    result += f"**Pipeline ID**: {pipeline_data.get('id', 'N/A')}\n"
+    result += f"**Status**: {pipeline_icon} {pipeline_status}\n"
+    result += f"**SHA**: `{pipeline_data.get('sha', 'N/A')[:8]}`\n"
+    result += f"**Ref**: `{pipeline_data.get('ref', 'N/A')}`\n"
 
     if pipeline_data.get("source"):
-        result += f"**📍 Source**: {pipeline_data['source']}\n"
+        result += f"**Source**: {pipeline_data['source']}\n"
 
     if pipeline_data.get("created_at"):
-        result += f"**📅 Created**: {format_date(pipeline_data['created_at'])}\n"
+        result += f"**Created**: {format_date(pipeline_data['created_at'])}\n"
 
-    if pipeline_data.get("updated_at"):
-        result += f"**🔄 Updated**: {format_date(pipeline_data['updated_at'])}\n"
-
-    if pipeline_data.get("started_at"):
-        result += f"**▶️ Started**: {format_date(pipeline_data['started_at'])}\n"
-
-    if pipeline_data.get("finished_at"):
-        result += f"**⏹️ Finished**: {format_date(pipeline_data['finished_at'])}\n"
-
-    # Duration
     if pipeline_data.get("duration"):
-        duration_mins = pipeline_data["duration"] // 60
-        duration_secs = pipeline_data["duration"] % 60
-        result += f"**⏱️ Duration**: {duration_mins}m {duration_secs}s\n"
+        result += f"**Duration**: {format_duration(pipeline_data['duration'])}\n"
 
-    if pipeline_data.get("queued_duration"):
-        queued_mins = pipeline_data["queued_duration"] // 60
-        queued_secs = pipeline_data["queued_duration"] % 60
-        result += f"**⏳ Queued**: {queued_mins}m {queued_secs}s\n"
+    if pipeline_data.get("coverage"):
+        result += f"**Coverage**: {pipeline_data['coverage']}%\n"
+
+    if pipeline_data.get("web_url"):
+        result += f"**URL**: {pipeline_data['web_url']}\n"
 
     result += "\n"
 
-    # User info
-    if pipeline_data.get("user"):
-        user = pipeline_data["user"]
-        result += "## 👤 Triggered By\n"
-        result += f"**Name**: {user.get('name', 'N/A')}\n"
-        result += f"**Username**: @{user.get('username', 'N/A')}\n"
-        result += "\n"
-
-    # Coverage
-    if pipeline_data.get("coverage"):
-        result += "## 📈 Code Coverage\n"
-        result += f"**Coverage**: {pipeline_data['coverage']}%\n"
-        result += "\n"
-
-    # Web URL
-    if pipeline_data.get("web_url"):
-        result += "## 🔗 Actions\n"
-        result += f"• [View Pipeline Details]({pipeline_data['web_url']})\n"
-        result += "\n"
-
-    # Jobs information
+    # Jobs
     if jobs_data:
-        result += "## 🔨 Pipeline Jobs\n\n"
+        result += "## Jobs\n\n"
 
-        # Group jobs by status
+        # Group by status
         failed_jobs = [j for j in jobs_data if j.get("status") == "failed"]
-        success_jobs = [j for j in jobs_data if j.get("status") == "success"]
         running_jobs = [j for j in jobs_data if j.get("status") == "running"]
+        success_jobs = [j for j in jobs_data if j.get("status") == "success"]
         other_jobs = [j for j in jobs_data if j.get("status") not in ["failed", "success", "running"]]
 
-        result += f"**Total Jobs**: {len(jobs_data)}\n"
-        result += f"**✅ Success**: {len(success_jobs)} | "
-        result += f"**❌ Failed**: {len(failed_jobs)} | "
-        result += f"**🔄 Running**: {len(running_jobs)} | "
-        result += f"**⏳ Other**: {len(other_jobs)}\n\n"
+        result += f"**Total**: {len(jobs_data)} | "
+        result += f"**Passed**: {len(success_jobs)} | "
+        result += f"**Failed**: {len(failed_jobs)} | "
+        result += f"**Running**: {len(running_jobs)} | "
+        result += f"**Other**: {len(other_jobs)}\n\n"
 
-        # Show failed jobs first
+        # Failed jobs first (most important)
         if failed_jobs:
-            result += "### ❌ Failed Jobs\n\n"
+            result += "### Failed Jobs\n\n"
             for job in failed_jobs:
                 job_icon = get_pipeline_status_icon(job.get("status"))
-                result += f"- {job_icon} **{job.get('name', 'Unknown Job')}** "
-                result += f"(Job ID: `{job.get('id')}`, Stage: {job.get('stage', 'N/A')})"
+                duration = format_duration(job.get("duration"))
+                result += f"- {job_icon} **{job.get('name', 'Unknown')}** "
+                result += f"(ID: `{job.get('id')}`, Stage: {job.get('stage', 'N/A')}, {duration})\n"
 
-                if job.get("duration"):
-                    duration_mins = int(job["duration"]) // 60
-                    duration_secs = int(job["duration"]) % 60
-                    result += f" - {duration_mins}m {duration_secs}s"
+            result += "\nUse `get_job_log` with Job ID to see error details.\n\n"
 
-                if job.get("web_url"):
-                    result += f" - [View]({job['web_url']})"
-
-                result += "\n"
-
-            result += "\n*💡 Tip: Use `get_job_log` with a Job ID to see the full output*\n"
-            result += "\n"
-
-        # Show running jobs
+        # Running jobs
         if running_jobs:
-            result += "### 🔄 Running Jobs\n\n"
+            result += "### Running Jobs\n\n"
             for job in running_jobs:
                 job_icon = get_pipeline_status_icon(job.get("status"))
-                result += f"- {job_icon} **{job.get('name', 'Unknown Job')}** "
-                result += f"(Job ID: `{job.get('id')}`, Stage: {job.get('stage', 'N/A')})"
-                if job.get("web_url"):
-                    result += f" - [View]({job['web_url']})"
-                result += "\n"
+                result += f"- {job_icon} **{job.get('name', 'Unknown')}** "
+                result += f"(ID: `{job.get('id')}`, Stage: {job.get('stage', 'N/A')})\n"
             result += "\n"
 
-        # Show successful jobs (summary)
+        # Successful jobs (compact)
         if success_jobs:
-            result += "### ✅ Successful Jobs\n\n"
+            result += "### Passed Jobs\n\n"
             for job in success_jobs:
-                result += f"- ✅ **{job.get('name', 'Unknown Job')}** "
-                result += f"(Job ID: `{job.get('id')}`, Stage: {job.get('stage', 'N/A')})"
-                if job.get("duration"):
-                    duration_mins = int(job["duration"]) // 60
-                    duration_secs = int(job["duration"]) % 60
-                    result += f" - {duration_mins}m {duration_secs}s"
-                result += "\n"
+                duration = format_duration(job.get("duration"))
+                result += f"- [pass] **{job.get('name', 'Unknown')}** "
+                result += f"(ID: `{job.get('id')}`, {duration})\n"
             result += "\n"
 
-        # Show other jobs
+        # Other jobs
         if other_jobs:
-            result += "### ⏳ Other Jobs\n\n"
+            result += "### Other Jobs\n\n"
             for job in other_jobs:
                 job_icon = get_pipeline_status_icon(job.get("status"))
-                result += f"- {job_icon} **{job.get('name', 'Unknown Job')}** "
-                result += f"(Job ID: `{job.get('id')}`, Stage: {job.get('stage', 'N/A')}, "
-                result += f"Status: {job.get('status', 'N/A')})\n"
+                result += f"- {job_icon} **{job.get('name', 'Unknown')}** "
+                result += f"(ID: `{job.get('id')}`, Status: {job.get('status', 'N/A')})\n"
             result += "\n"
 
     # Status explanation
-    result += "## ℹ️ Status Information\n"
     status_explanations = {
-        "success": "✅ All jobs passed successfully",
-        "failed": "❌ One or more jobs failed",
-        "running": "🔄 Pipeline is currently running",
-        "pending": "⏳ Pipeline is waiting to start",
-        "canceled": "⏹️ Pipeline was canceled",
-        "skipped": "⏭️ Pipeline was skipped",
-        "manual": "👤 Waiting for manual action",
-        "created": "📝 Pipeline was created but not started",
-        "preparing": "🔧 Pipeline is preparing to run",
-        "waiting_for_resource": "⏸️ Waiting for available resources",
-        "scheduled": "📅 Pipeline is scheduled to run",
+        "success": "All jobs passed successfully",
+        "failed": "One or more jobs failed",
+        "running": "Pipeline is currently running",
+        "pending": "Pipeline is waiting to start",
+        "canceled": "Pipeline was canceled",
+        "skipped": "Pipeline was skipped",
+        "manual": "Waiting for manual action",
     }
 
-    explanation = status_explanations.get(pipeline_status, f"Unknown status: {pipeline_status}")
-    result += f"{explanation}\n"
+    explanation = status_explanations.get(pipeline_status, f"Status: {pipeline_status}")
+    result += f"**Status explanation**: {explanation}\n"
 
     return [TextContent(type="text", text=result)]

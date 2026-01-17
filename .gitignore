@@ -123,3 +123,4 @@ Thumbs.db
 
 # Pre-commit
 .pre-commit-cache/
+ROADMAP.md

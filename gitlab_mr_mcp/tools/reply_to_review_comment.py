@@ -7,6 +7,7 @@ from gitlab_mr_mcp.gitlab_api import (
     reply_to_merge_request_discussion,
     resolve_merge_request_discussion,
 )
+from gitlab_mr_mcp.utils import truncate_text
 
 
 async def reply_to_review_comment(gitlab_url, project_id, access_token, args):
@@ -23,35 +24,34 @@ async def reply_to_review_comment(gitlab_url, project_id, access_token, args):
         )
 
         if status == 201:
-            author_name = response_data.get("author", {}).get("name", "Unknown")
+            author = response_data.get("author", {}).get("name", "Unknown")
             note_id = response_data.get("id", "unknown")
 
-            result = "✅ **Reply posted successfully!**\n\n"
-            result += f"**Merge Request**: !{mr_iid}\n"
-            result += f"**Discussion ID**: `{discussion_id}`\n"
+            result = "# Reply Posted\n\n"
+            result += f"**MR**: !{mr_iid}\n"
+            result += f"**Discussion**: `{discussion_id}`\n"
             result += f"**Note ID**: `{note_id}`\n"
-            result += f"**Author**: {author_name}\n"
-            reply_preview = reply_body[:100] + ("..." if len(reply_body) > 100 else "")
-            result += f"**Reply**: {reply_preview}\n"
+            result += f"**Author**: {author}\n"
+            result += f"**Reply**: {truncate_text(reply_body)}\n"
 
             return [TextContent(type="text", text=result)]
         else:
-            error_msg = "❌ **Error posting reply**\n\n"
-            error_msg += f"**Status**: {status}\n"
-            error_msg += f"**Error**: {error_text}\n"
-            error_msg += f"**MR**: !{mr_iid}\n"
-            error_msg += f"**Discussion**: {discussion_id}\n"
+            result = "# Error Posting Reply\n\n"
+            result += f"**Status**: {status}\n"
+            result += f"**Error**: {error_text}\n"
+            result += f"**MR**: !{mr_iid}\n"
+            result += f"**Discussion**: `{discussion_id}`\n"
 
-            return [TextContent(type="text", text=error_msg)]
+            return [TextContent(type="text", text=result)]
 
     except Exception as e:
         logging.error(f"Unexpected error in reply_to_review_comment: {e}")
-        error_result = "❌ **Unexpected error**\n\n"
-        error_result += f"**Error**: {str(e)}\n"
-        error_result += f"**MR**: !{mr_iid}\n"
-        error_result += f"**Discussion**: {discussion_id}\n"
+        result = "# Unexpected Error\n\n"
+        result += f"**Error**: {str(e)}\n"
+        result += f"**MR**: !{mr_iid}\n"
+        result += f"**Discussion**: `{discussion_id}`\n"
 
-        return [TextContent(type="text", text=error_result)]
+        return [TextContent(type="text", text=result)]
 
 
 async def create_review_comment(gitlab_url, project_id, access_token, args):
@@ -67,31 +67,29 @@ async def create_review_comment(gitlab_url, project_id, access_token, args):
         )
 
         if status == 201:
-            author_name = response_data.get("author", {}).get("name", "Unknown")
             discussion_id = response_data.get("id", "unknown")
 
-            result = "✅ **New discussion created!**\n\n"
-            result += f"**Merge Request**: !{mr_iid}\n"
+            result = "# Discussion Created\n\n"
+            result += f"**MR**: !{mr_iid}\n"
             result += f"**Discussion ID**: `{discussion_id}`\n"
-            result += f"**Author**: {author_name}\n"
-            result += f"**Comment**: {comment_body[:100]}{'...' if len(comment_body) > 100 else ''}\n"
+            result += f"**Comment**: {truncate_text(comment_body)}\n"
 
             return [TextContent(type="text", text=result)]
         else:
-            error_msg = "❌ **Error creating discussion**\n\n"
-            error_msg += f"**Status**: {status}\n"
-            error_msg += f"**Error**: {error_text}\n"
-            error_msg += f"**MR**: !{mr_iid}\n"
+            result = "# Error Creating Discussion\n\n"
+            result += f"**Status**: {status}\n"
+            result += f"**Error**: {error_text}\n"
+            result += f"**MR**: !{mr_iid}\n"
 
-            return [TextContent(type="text", text=error_msg)]
+            return [TextContent(type="text", text=result)]
 
     except Exception as e:
         logging.error(f"Unexpected error in create_review_comment: {e}")
-        error_result = "❌ **Unexpected error**\n\n"
-        error_result += f"**Error**: {str(e)}\n"
-        error_result += f"**MR**: !{mr_iid}\n"
+        result = "# Unexpected Error\n\n"
+        result += f"**Error**: {str(e)}\n"
+        result += f"**MR**: !{mr_iid}\n"
 
-        return [TextContent(type="text", text=error_result)]
+        return [TextContent(type="text", text=result)]
 
 
 async def resolve_review_discussion(gitlab_url, project_id, access_token, args):
@@ -102,34 +100,34 @@ async def resolve_review_discussion(gitlab_url, project_id, access_token, args):
     discussion_id = args["discussion_id"]
     resolved = args.get("resolved", True)
 
+    action = "resolved" if resolved else "reopened"
+
     try:
         status, response_data, error_text = await resolve_merge_request_discussion(
             gitlab_url, project_id, access_token, mr_iid, discussion_id, resolved
         )
 
         if status == 200:
-            action = "resolved" if resolved else "reopened"
-
-            result = f"✅ **Discussion {action}!**\n\n"
-            result += f"**Merge Request**: !{mr_iid}\n"
-            result += f"**Discussion ID**: `{discussion_id}`\n"
-            result += f"**Status**: {'✅ Resolved' if resolved else '🔄 Reopened'}\n"
+            result = f"# Discussion {action.title()}\n\n"
+            result += f"**MR**: !{mr_iid}\n"
+            result += f"**Discussion**: `{discussion_id}`\n"
+            result += f"**Status**: {action.title()}\n"
 
             return [TextContent(type="text", text=result)]
         else:
-            error_msg = f"❌ **Error {action} discussion**\n\n"
-            error_msg += f"**Status**: {status}\n"
-            error_msg += f"**Error**: {error_text}\n"
-            error_msg += f"**MR**: !{mr_iid}\n"
-            error_msg += f"**Discussion**: {discussion_id}\n"
+            result = f"# Error {action.title()} Discussion\n\n"
+            result += f"**Status**: {status}\n"
+            result += f"**Error**: {error_text}\n"
+            result += f"**MR**: !{mr_iid}\n"
+            result += f"**Discussion**: `{discussion_id}`\n"
 
-            return [TextContent(type="text", text=error_msg)]
+            return [TextContent(type="text", text=result)]
 
     except Exception as e:
         logging.error(f"Unexpected error in resolve_review_discussion: {e}")
-        error_result = "❌ **Unexpected error**\n\n"
-        error_result += f"**Error**: {str(e)}\n"
-        error_result += f"**MR**: !{mr_iid}\n"
-        error_result += f"**Discussion**: {discussion_id}\n"
+        result = "# Unexpected Error\n\n"
+        result += f"**Error**: {str(e)}\n"
+        result += f"**MR**: !{mr_iid}\n"
+        result += f"**Discussion**: `{discussion_id}`\n"
 
-        return [TextContent(type="text", text=error_result)]
+        return [TextContent(type="text", text=result)]
