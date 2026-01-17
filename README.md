@@ -157,13 +157,20 @@ Use `get_merge_request_test_report` for detailed debugging:
 **Example Output:**
 
 ```
-Test Report Summary:
-Total: 45 tests | ✅ 42 passed | ❌ 3 failed | Pass Rate: 93.3%
+## Summary
 
-❌ Failed Tests:
-  test_login_with_invalid_password (0.3s)
-    Error: AssertionError: Expected 401, got 200
-    File: tests/auth_test.py
+**Total**: 45 | **Passed**: 42 | **Failed**: 3 | **Errors**: 0
+**Pass Rate**: 93.3%
+
+## Failed Tests
+
+### [FAIL] test_login_with_invalid_password
+
+**Duration**: 0.300s
+**Class**: `tests.auth_test.TestAuth`
+
+**Error Output**:
+AssertionError: Expected 401, got 200
 ```
 
 **Why Use This Instead of Job Logs?**
@@ -367,10 +374,23 @@ gitlab_mr_mcp/
 1. **Install development dependencies:**
 
 ```bash
-uv pip install -e ".[dev]"
+make install
+# or: uv pip install -e ".[dev]"
 ```
 
-2. **Set up pre-commit hooks:**
+2. **Available make commands:**
+
+```bash
+make install   # Install in editable mode with dev deps
+make dev       # Build and install wheel locally
+make test      # Run tests
+make lint      # Run linters
+make format    # Format code
+make check     # Lint + test
+make clean     # Remove build artifacts
+```
+
+3. **Set up pre-commit hooks:**
 
 ```bash
 pre-commit install
@@ -386,18 +406,14 @@ This will automatically check and format your code for:
 - 🔒 **Security issues (bandit)** - security checks
 - 📋 **YAML/JSON formatting** - validated
 
-3. **Format all existing code (first time only):**
+4. **Format all existing code (first time only):**
 
 ```bash
-# Install dependencies first if not already done
-uv pip install -e ".[dev]"
-
-# Format everything
-black --line-length=120 .
-isort --profile black --line-length=120 .
+make format
+# or: black --line-length=120 . && isort --profile black --line-length=120 .
 ```
 
-4. **Run pre-commit manually on all files:**
+5. **Run pre-commit manually on all files:**
 
 ```bash
 pre-commit run --all-files
@@ -406,14 +422,8 @@ pre-commit run --all-files
 ### Running Tests
 
 ```bash
-# Install dev dependencies
-pip install -e ".[dev]"
-
-# Run all tests
-pytest
-
-# Run with verbose output
-pytest -v
+make test
+# or: uv run pytest tests/ -v
 ```
 
 ## Security Notes
