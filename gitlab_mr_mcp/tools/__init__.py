@@ -5,6 +5,7 @@ This package contains all the tool implementations for the GitLab MCP server.
 Each tool provides specific functionality for interacting with GitLab's API.
 """
 
+from .approve_merge_request import approve_merge_request, unapprove_merge_request
 from .create_merge_request import create_merge_request
 from .get_branch_merge_requests import get_branch_merge_requests
 from .get_commit_discussions import get_commit_discussions
@@ -17,6 +18,7 @@ from .get_pipeline_test_summary import get_pipeline_test_summary
 from .list_merge_requests import list_merge_requests
 from .list_project_labels import list_project_labels
 from .list_project_members import list_project_members
+from .merge_merge_request import merge_merge_request
 from .reply_to_review_comment import create_review_comment, reply_to_review_comment, resolve_review_discussion
 from .update_merge_request import update_merge_request
 
@@ -37,4 +39,7 @@ __all__ = [
     "list_project_labels",
     "create_merge_request",
     "update_merge_request",
+    "merge_merge_request",
+    "approve_merge_request",
+    "unapprove_merge_request",
 ]

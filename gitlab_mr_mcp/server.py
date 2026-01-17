@@ -12,6 +12,7 @@ from mcp.types import INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND, ErrorDat
 from gitlab_mr_mcp.config import get_gitlab_config
 from gitlab_mr_mcp.logging_config import configure_logging
 from gitlab_mr_mcp.tools import (
+    approve_merge_request,
     create_merge_request,
     create_review_comment,
     get_branch_merge_requests,
@@ -25,8 +26,10 @@ from gitlab_mr_mcp.tools import (
     list_merge_requests,
     list_project_labels,
     list_project_members,
+    merge_merge_request,
     reply_to_review_comment,
     resolve_review_discussion,
+    unapprove_merge_request,
     update_merge_request,
 )
 
@@ -420,6 +423,92 @@ class GitLabMCPServer:
                         "additionalProperties": False,
                     },
                 ),
+                Tool(
+                    name="merge_merge_request",
+                    description=(
+                        "Merge a merge request. Requires the MR to be in a mergeable state "
+                        "(no conflicts, pipeline passing, approvals met). "
+                        "Use get_merge_request_details first to check merge status."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "merge_request_iid": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": "Internal ID of the merge request to merge",
+                            },
+                            "squash": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "Squash commits into a single commit",
+                            },
+                            "should_remove_source_branch": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "Remove source branch after merge",
+                            },
+                            "merge_when_pipeline_succeeds": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "Merge when pipeline succeeds (auto-merge)",
+                            },
+                            "sha": {
+                                "type": "string",
+                                "description": "HEAD SHA to ensure no new commits (optional safety check)",
+                            },
+                            "merge_commit_message": {
+                                "type": "string",
+                                "description": "Custom merge commit message (optional)",
+                            },
+                            "squash_commit_message": {
+                                "type": "string",
+                                "description": "Custom squash commit message (optional)",
+                            },
+                        },
+                        "required": ["merge_request_iid"],
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="approve_merge_request",
+                    description=(
+                        "Approve a merge request. Adds your approval to the MR. "
+                        "Note: You cannot approve your own MRs."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "merge_request_iid": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": "Internal ID of the merge request to approve",
+                            },
+                            "sha": {
+                                "type": "string",
+                                "description": "HEAD SHA to ensure approving the right version (optional)",
+                            },
+                        },
+                        "required": ["merge_request_iid"],
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="unapprove_merge_request",
+                    description="Revoke your approval from a merge request.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "merge_request_iid": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": "Internal ID of the merge request to unapprove",
+                            },
+                        },
+                        "required": ["merge_request_iid"],
+                        "additionalProperties": False,
+                    },
+                ),
             ]
             tool_names = [t.name for t in tools]
             logging.info(f"Returning {len(tools)} tools: {tool_names}")
@@ -447,6 +536,9 @@ class GitLabMCPServer:
                     "list_project_labels",
                     "create_merge_request",
                     "update_merge_request",
+                    "merge_merge_request",
+                    "approve_merge_request",
+                    "unapprove_merge_request",
                 ]:
                     logging.warning(f"Unknown tool called: {name}")
                     raise McpError(error=ErrorData(code=METHOD_NOT_FOUND, message=f"Unknown tool: {name}"))
@@ -513,6 +605,18 @@ class GitLabMCPServer:
                     )
                 elif name == "update_merge_request":
                     return await update_merge_request(
+                        self.config["gitlab_url"], self.config["project_id"], self.config["access_token"], arguments
+                    )
+                elif name == "merge_merge_request":
+                    return await merge_merge_request(
+                        self.config["gitlab_url"], self.config["project_id"], self.config["access_token"], arguments
+                    )
+                elif name == "approve_merge_request":
+                    return await approve_merge_request(
+                        self.config["gitlab_url"], self.config["project_id"], self.config["access_token"], arguments
+                    )
+                elif name == "unapprove_merge_request":
+                    return await unapprove_merge_request(
                         self.config["gitlab_url"], self.config["project_id"], self.config["access_token"], arguments
                     )
 
