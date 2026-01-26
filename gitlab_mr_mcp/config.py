@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Configuration management for GitLab MCP Server."""
 
-from decouple import config
+import os
 
 
 def get_gitlab_config():
     """Get GitLab configuration from environment variables."""
-    gitlab_url = config("GITLAB_URL", default="https://gitlab.com")
-    project_id = config("GITLAB_PROJECT_ID")
-    access_token = config("GITLAB_ACCESS_TOKEN")
+    gitlab_url = os.environ.get("GITLAB_URL", "https://gitlab.com")
+    project_id = os.environ.get("GITLAB_PROJECT_ID")
+    access_token = os.environ.get("GITLAB_ACCESS_TOKEN")
 
     if not project_id:
         raise ValueError("GITLAB_PROJECT_ID environment variable is required")
@@ -19,8 +19,8 @@ def get_gitlab_config():
         "gitlab_url": gitlab_url,
         "project_id": project_id,
         "access_token": access_token,
-        "server_name": config("SERVER_NAME", default="gitlab-mcp-server"),
-        "server_version": config("SERVER_VERSION", default="1.0.0"),
+        "server_name": os.environ.get("SERVER_NAME", "gitlab-mcp-server"),
+        "server_version": os.environ.get("SERVER_VERSION", "1.0.0"),
     }
 
 
