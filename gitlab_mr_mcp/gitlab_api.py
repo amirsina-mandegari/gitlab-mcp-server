@@ -1,4 +1,23 @@
+import contextlib
+import os
+
 import aiohttp
+
+
+def _get_connector():
+    socks_proxy = os.environ.get("SOCKS_PROXY")
+    if socks_proxy:
+        from aiohttp_socks import ProxyConnector
+
+        return ProxyConnector.from_url(socks_proxy)
+    return None
+
+
+@contextlib.asynccontextmanager
+async def get_session():
+    connector = _get_connector()
+    async with aiohttp.ClientSession(connector=connector) as session:
+        yield session
 
 
 def _headers(access_token):
@@ -8,7 +27,7 @@ def _headers(access_token):
 async def get_merge_requests(gitlab_url, project_id, access_token, params):
     url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(url, headers=headers, params=params) as response:
             return (response.status, await response.json(), await response.text())
 
@@ -17,7 +36,7 @@ async def get_merge_request_pipeline(gitlab_url, project_id, access_token, mr_ii
     """Get the latest pipeline for a merge request"""
     url = f"{gitlab_url}/api/v4/projects/{project_id}/" f"merge_requests/{mr_iid}/pipelines"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         params = {"per_page": 1}
         async with session.get(url, headers=headers, params=params) as response:
             data = await response.json()
@@ -28,7 +47,7 @@ async def get_pipeline_jobs(gitlab_url, project_id, access_token, pipeline_id):
     """Get all jobs for a specific pipeline"""
     url = f"{gitlab_url}/api/v4/projects/{project_id}/" f"pipelines/{pipeline_id}/jobs"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         params = {"per_page": 100}
         async with session.get(url, headers=headers, params=params) as response:
             return (response.status, await response.json(), await response.text())
@@ -38,7 +57,7 @@ async def get_job_trace(gitlab_url, project_id, access_token, job_id):
     """Get the trace/log output for a specific job"""
     url = f"{gitlab_url}/api/v4/projects/{project_id}/" f"jobs/{job_id}/trace"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(url, headers=headers) as response:
             return (response.status, await response.text(), response.status)
 
@@ -47,7 +66,7 @@ async def get_pipeline_test_report(gitlab_url, project_id, access_token, pipelin
     """Get test report for a specific pipeline"""
     url = f"{gitlab_url}/api/v4/projects/{project_id}/" f"pipelines/{pipeline_id}/test_report"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(url, headers=headers) as response:
             return (response.status, await response.json(), await response.text())
 
@@ -56,7 +75,7 @@ async def get_pipeline_test_report_summary(gitlab_url, project_id, access_token,
     """Get test report summary for a specific pipeline"""
     url = f"{gitlab_url}/api/v4/projects/{project_id}/" f"pipelines/{pipeline_id}/test_report_summary"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(url, headers=headers) as response:
             return (response.status, await response.json(), await response.text())
 
@@ -65,7 +84,7 @@ async def get_merge_request_changes(gitlab_url, project_id, access_token, mr_iid
     """Get changes/diff stats for a merge request"""
     url = f"{gitlab_url}/api/v4/projects/{project_id}/" f"merge_requests/{mr_iid}/changes"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(url, headers=headers) as response:
             return (response.status, await response.json(), await response.text())
 
@@ -74,7 +93,7 @@ async def get_project_info(gitlab_url, project_id, access_token):
     """Get project information to check for merge conflicts"""
     url = f"{gitlab_url}/api/v4/projects/{project_id}"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(url, headers=headers) as response:
             return (response.status, await response.json(), await response.text())
 
@@ -85,7 +104,7 @@ async def get_merge_request_reviews(gitlab_url, project_id, access_token, mr_iid
 
     approvals_url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}/approvals"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(approvals_url, headers=headers) as approvals_response:
             if approvals_response.status == 200:
                 approvals = await approvals_response.json()
@@ -103,7 +122,7 @@ async def get_merge_request_reviews(gitlab_url, project_id, access_token, mr_iid
 async def get_merge_request_details(gitlab_url, project_id, access_token, mr_iid):
     url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(url, headers=headers) as response:
             return (response.status, await response.json(), await response.text())
 
@@ -114,7 +133,7 @@ async def create_merge_request_discussion(gitlab_url, project_id, access_token, 
     headers = _headers(access_token)
     data = {"body": body}
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.post(url, headers=headers, json=data) as response:
             json_data = await response.json() if response.content_type == "application/json" else {}
             return (response.status, json_data, await response.text())
@@ -126,7 +145,7 @@ async def reply_to_merge_request_discussion(gitlab_url, project_id, access_token
     headers = _headers(access_token)
     data = {"body": body}
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.post(url, headers=headers, json=data) as response:
             json_data = await response.json() if response.content_type == "application/json" else {}
             return (response.status, json_data, await response.text())
@@ -138,7 +157,7 @@ async def resolve_merge_request_discussion(gitlab_url, project_id, access_token,
     headers = _headers(access_token)
     data = {"resolved": resolved}
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.put(url, headers=headers, json=data) as response:
             json_data = await response.json() if response.content_type == "application/json" else {}
             return (response.status, json_data, await response.text())
@@ -151,7 +170,7 @@ async def get_branch_merge_requests(gitlab_url, project_id, access_token, branch
     url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests"
     headers = _headers(access_token)
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(url, headers=headers, params=params) as response:
             return (response.status, await response.json(), await response.text())
 
@@ -164,7 +183,7 @@ async def get_merge_request_commits(gitlab_url, project_id, access_token, mr_iid
     page = 1
     per_page = 100  # Maximum allowed per page
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         while True:
             params = {"page": page, "per_page": per_page}
             async with session.get(base_url, headers=headers, params=params) as response:
@@ -190,7 +209,7 @@ async def get_commit_comments(gitlab_url, project_id, access_token, commit_sha):
     """Get simple comments for a specific commit"""
     url = f"{gitlab_url}/api/v4/projects/{project_id}/" f"repository/commits/{commit_sha}/comments"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(url, headers=headers) as response:
             return (response.status, await response.json(), await response.text())
 
@@ -199,7 +218,7 @@ async def get_commit_discussions(gitlab_url, project_id, access_token, commit_sh
     """Get discussions/comments for a specific commit"""
     url = f"{gitlab_url}/api/v4/projects/{project_id}/" f"repository/commits/{commit_sha}/discussions"
     headers = _headers(access_token)
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.get(url, headers=headers) as response:
             return (response.status, await response.json(), await response.text())
 
@@ -261,7 +280,7 @@ async def get_merge_request_discussions_paginated(gitlab_url, project_id, access
     page = 1
     per_page = 100  # Maximum allowed per page
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         headers = _headers(access_token)
 
         while True:
@@ -295,7 +314,7 @@ async def get_project_members(gitlab_url, project_id, access_token):
     page = 1
     per_page = 100
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         while True:
             params = {"page": page, "per_page": per_page}
             async with session.get(url, headers=headers, params=params) as response:
@@ -324,7 +343,7 @@ async def get_project_labels(gitlab_url, project_id, access_token):
     page = 1
     per_page = 100
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         while True:
             params = {"page": page, "per_page": per_page, "include_ancestor_groups": "true"}
             async with session.get(url, headers=headers, params=params) as response:
@@ -350,7 +369,7 @@ async def create_merge_request(gitlab_url, project_id, access_token, data):
     url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests"
     headers = _headers(access_token)
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.post(url, headers=headers, json=data) as response:
             json_data = await response.json() if response.content_type == "application/json" else {}
             return (response.status, json_data, await response.text())
@@ -361,7 +380,7 @@ async def update_merge_request(gitlab_url, project_id, access_token, mr_iid, dat
     url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}"
     headers = _headers(access_token)
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.put(url, headers=headers, json=data) as response:
             json_data = await response.json() if response.content_type == "application/json" else {}
             return (response.status, json_data, await response.text())
@@ -372,7 +391,7 @@ async def merge_merge_request(gitlab_url, project_id, access_token, mr_iid, data
     url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}/merge"
     headers = _headers(access_token)
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.put(url, headers=headers, json=data or {}) as response:
             json_data = await response.json() if response.content_type == "application/json" else {}
             return (response.status, json_data, await response.text())
@@ -386,7 +405,7 @@ async def approve_merge_request(gitlab_url, project_id, access_token, mr_iid, sh
     if sha:
         data["sha"] = sha
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.post(url, headers=headers, json=data) as response:
             json_data = await response.json() if response.content_type == "application/json" else {}
             return (response.status, json_data, await response.text())
@@ -397,7 +416,7 @@ async def unapprove_merge_request(gitlab_url, project_id, access_token, mr_iid):
     url = f"{gitlab_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}/unapprove"
     headers = _headers(access_token)
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.post(url, headers=headers) as response:
             json_data = await response.json() if response.content_type == "application/json" else {}
             return (response.status, json_data, await response.text())
@@ -417,7 +436,7 @@ async def create_project_label(gitlab_url, project_id, access_token, name, color
     if description:
         data["description"] = description
 
-    async with aiohttp.ClientSession() as session:
+    async with get_session() as session:
         async with session.post(url, headers=headers, json=data) as response:
             json_data = await response.json() if response.content_type == "application/json" else {}
             return (response.status, json_data, await response.text())

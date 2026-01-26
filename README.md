@@ -340,6 +340,34 @@ export GITLAB_ACCESS_TOKEN=glpat-xxxxxxxxxxxxxxxxxxxx
 export GITLAB_URL=https://gitlab.com
 ```
 
+### SOCKS Proxy Support
+
+Route all GitLab API requests through a SOCKS5 proxy by setting `SOCKS_PROXY`:
+
+```json
+{
+  "mcpServers": {
+    "gitlab-mcp": {
+      "command": "gitlab-mcp",
+      "env": {
+        "GITLAB_URL": "https://gitlab.com",
+        "GITLAB_ACCESS_TOKEN": "glpat-xxxxxxxxxxxxxxxxxxxx",
+        "GITLAB_PROJECT_ID": "12345",
+        "SOCKS_PROXY": "socks5://127.0.0.1:1080"
+      }
+    }
+  }
+}
+```
+
+Or via environment variable:
+
+```bash
+export SOCKS_PROXY=socks5://127.0.0.1:1080
+```
+
+When `SOCKS_PROXY` is not set, connections are made directly (no proxy).
+
 ### Find Your Project ID
 
 - Go to your GitLab project → Settings → General → Project ID
@@ -383,6 +411,7 @@ export GITLAB_URL=https://gitlab.com
 
 ### Recently Added
 
+- **v1.3.0**: SOCKS5 proxy support for routing GitLab API requests
 - **v1.2.0**: Merge, approve, and unapprove MR tools - complete MR lifecycle
 - **v1.1.0**: Create and update MR tools, cleaner output formatting
 
