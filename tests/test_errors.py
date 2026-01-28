@@ -8,19 +8,15 @@ import pytest
 from gitlab_mr_mcp.config import get_gitlab_config
 
 
-def test_config_missing_project_id():
-    """Test that missing GITLAB_PROJECT_ID raises error."""
-    with patch.dict(os.environ, {}, clear=True):
-        # Remove the env vars
-        with patch.dict(
-            os.environ,
-            {"GITLAB_ACCESS_TOKEN": "test-token", "GITLAB_URL": "https://gitlab.com"},
-            clear=True,
-        ):
-            with pytest.raises(Exception) as exc_info:
-                get_gitlab_config()
-
-            assert "GITLAB_PROJECT_ID" in str(exc_info.value)
+def test_config_project_id_optional():
+    """Test that missing GITLAB_PROJECT_ID is allowed (returns None)."""
+    with patch.dict(
+        os.environ,
+        {"GITLAB_ACCESS_TOKEN": "test-token", "GITLAB_URL": "https://gitlab.com"},
+        clear=True,
+    ):
+        config = get_gitlab_config()
+        assert config["project_id"] is None
 
 
 def test_config_missing_access_token():

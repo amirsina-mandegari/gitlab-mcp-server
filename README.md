@@ -45,7 +45,29 @@ pip install gitlab-mr-mcp
 
 ### Configure your MCP client
 
-Add to your MCP config (e.g., `.cursor/mcp.json` for Cursor):
+#### Multi-Project Setup (Recommended)
+
+For working with **multiple GitLab projects**, add to your global MCP config (`~/.cursor/mcp.json` for Cursor):
+
+```json
+{
+  "mcpServers": {
+    "gitlab-mcp": {
+      "command": "gitlab-mcp",
+      "env": {
+        "GITLAB_URL": "https://gitlab.com",
+        "GITLAB_ACCESS_TOKEN": "glpat-xxxxxxxxxxxxxxxxxxxx"
+      }
+    }
+  }
+}
+```
+
+This single configuration works across **all your projects**. Use `search_projects` or `list_my_projects` to find project IDs, then specify `project_id` in your requests.
+
+#### Single-Project Setup
+
+For working with a **single project**, you can set a default project ID:
 
 ```json
 {
@@ -67,6 +89,15 @@ Restart your MCP client and start asking GitLab questions!
 ## What You Can Do
 
 Once connected, try these commands in your chat:
+
+### Multi-Project Workflow
+
+- _"What projects do I have access to?"_
+- _"Search for the backend project"_
+- _"Show open MRs for project 12345"_
+- _"List merge requests for group/my-project"_
+
+### Single-Project Commands
 
 - _"List open merge requests"_
 - _"Show me details for merge request 456"_
@@ -385,32 +416,45 @@ When `SOCKS_PROXY` is not set, connections are made directly (no proxy).
 
 ## Tool Reference
 
-| Tool                            | Description                       | Parameters                                       |
-| ------------------------------- | --------------------------------- | ------------------------------------------------ |
-| `list_merge_requests`           | List merge requests               | `state`, `target_branch`, `limit`                |
-| `get_merge_request_details`     | Get MR details                    | `merge_request_iid`                              |
-| `create_merge_request`          | Create a new merge request        | `source_branch`, `target_branch`, `title`, etc.  |
-| `update_merge_request`          | Update an existing merge request  | `merge_request_iid`, `title`, `assignees`, etc.  |
-| `merge_merge_request`           | Merge an MR                       | `merge_request_iid`, `squash`, `sha`, etc.       |
-| `approve_merge_request`         | Approve an MR                     | `merge_request_iid`, `sha`                       |
-| `unapprove_merge_request`       | Revoke approval from an MR        | `merge_request_iid`                              |
-| `get_pipeline_test_summary`     | Get test summary (fast overview)  | `merge_request_iid`                              |
-| `get_merge_request_test_report` | Get detailed test failure reports | `merge_request_iid`                              |
-| `get_merge_request_pipeline`    | Get pipeline with all jobs        | `merge_request_iid`                              |
-| `get_job_log`                   | Get trace/output for specific job | `job_id`                                         |
-| `get_merge_request_reviews`     | Get reviews/discussions           | `merge_request_iid`                              |
-| `get_commit_discussions`        | Get discussions on commits        | `merge_request_iid`                              |
-| `get_branch_merge_requests`     | Find MRs for branch               | `branch_name`                                    |
-| `reply_to_review_comment`       | Reply to existing discussion      | `merge_request_iid`, `discussion_id`, `body`     |
-| `create_review_comment`         | Create new discussion thread      | `merge_request_iid`, `body`                      |
-| `resolve_review_discussion`     | Resolve/unresolve discussion      | `merge_request_iid`, `discussion_id`, `resolved` |
-| `list_project_members`          | List project members              | (none)                                           |
-| `list_project_labels`           | List project labels               | (none)                                           |
+### Project Discovery Tools
+
+| Tool               | Description                                      | Parameters                     |
+| ------------------ | ------------------------------------------------ | ------------------------------ |
+| `search_projects`  | **Primary** - Fast search by name (use this first) | `search`, `membership`, `limit`|
+| `list_my_projects` | List all projects (slower, use for browsing)     | `owned`, `limit`               |
+
+### Merge Request Tools
+
+All project-scoped tools accept an optional `project_id` parameter. If not provided, falls back to `GITLAB_PROJECT_ID` env var.
+
+| Tool                            | Description                       | Parameters                                                  |
+| ------------------------------- | --------------------------------- | ----------------------------------------------------------- |
+| `list_merge_requests`           | List merge requests               | `project_id`, `state`, `target_branch`, `limit`             |
+| `get_merge_request_details`     | Get MR details                    | `project_id`, `merge_request_iid`                           |
+| `create_merge_request`          | Create a new merge request        | `project_id`, `source_branch`, `target_branch`, `title`...  |
+| `update_merge_request`          | Update an existing merge request  | `project_id`, `merge_request_iid`, `title`, `assignees`...  |
+| `merge_merge_request`           | Merge an MR                       | `project_id`, `merge_request_iid`, `squash`, `sha`...       |
+| `approve_merge_request`         | Approve an MR                     | `project_id`, `merge_request_iid`, `sha`                    |
+| `unapprove_merge_request`       | Revoke approval from an MR        | `project_id`, `merge_request_iid`                           |
+| `get_pipeline_test_summary`     | Get test summary (fast overview)  | `project_id`, `merge_request_iid`                           |
+| `get_merge_request_test_report` | Get detailed test failure reports | `project_id`, `merge_request_iid`                           |
+| `get_merge_request_pipeline`    | Get pipeline with all jobs        | `project_id`, `merge_request_iid`                           |
+| `get_job_log`                   | Get trace/output for specific job | `project_id`, `job_id`                                      |
+| `get_merge_request_reviews`     | Get reviews/discussions           | `project_id`, `merge_request_iid`                           |
+| `get_commit_discussions`        | Get discussions on commits        | `project_id`, `merge_request_iid`                           |
+| `get_branch_merge_requests`     | Find MRs for branch               | `project_id`, `branch_name`                                 |
+| `reply_to_review_comment`       | Reply to existing discussion      | `project_id`, `merge_request_iid`, `discussion_id`, `body`  |
+| `create_review_comment`         | Create new discussion thread      | `project_id`, `merge_request_iid`, `body`                   |
+| `resolve_review_discussion`     | Resolve/unresolve discussion      | `project_id`, `merge_request_iid`, `discussion_id`          |
+| `list_project_members`          | List project members              | `project_id`                                                |
+| `list_project_labels`           | List project labels               | `project_id`                                                |
 
 ## Roadmap
 
 ### Recently Added
 
+- **v1.4.0**: Project discovery tools, MCP best practices (tool titles, annotations), improved prompts
+- **v1.3.1**: Fixed multi-workspace environment variable conflict in Cursor
 - **v1.3.0**: SOCKS5 proxy support for routing GitLab API requests
 - **v1.2.0**: Merge, approve, and unapprove MR tools - complete MR lifecycle
 - **v1.1.0**: Create and update MR tools, cleaner output formatting
@@ -459,6 +503,28 @@ gitlab_mr_mcp/
 2. Add import and export to `gitlab_mr_mcp/tools/__init__.py`
 3. Add to `list_tools()` in `gitlab_mr_mcp/server.py`
 4. Add handler to `call_tool()` in `gitlab_mr_mcp/server.py`
+
+### Adding Prompts
+
+Prompts provide workflow guidance to AI assistants. Add new prompts in `gitlab_mr_mcp/prompts.py`:
+
+1. Define the prompt content as a string constant
+2. Add entry to the `PROMPTS` dictionary with `title`, `description`, and `content`
+
+```python
+NEW_PROMPT = """
+Your prompt content here - focus on decision trees and when to use which tool.
+"""
+
+PROMPTS = {
+    # ... existing prompts ...
+    "new-prompt": {
+        "title": "Human Readable Title",
+        "description": "Short description for prompt list",
+        "content": NEW_PROMPT,
+    },
+}
+```
 
 ### Development Setup
 

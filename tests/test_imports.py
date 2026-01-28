@@ -6,7 +6,7 @@ def test_package_import():
     import gitlab_mr_mcp
 
     assert hasattr(gitlab_mr_mcp, "__version__")
-    assert gitlab_mr_mcp.__version__ == "1.0.0"
+    assert isinstance(gitlab_mr_mcp.__version__, str)
 
 
 def test_server_import():

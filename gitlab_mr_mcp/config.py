@@ -10,8 +10,6 @@ def get_gitlab_config():
     project_id = os.environ.get("GITLAB_PROJECT_ID")
     access_token = os.environ.get("GITLAB_ACCESS_TOKEN")
 
-    if not project_id:
-        raise ValueError("GITLAB_PROJECT_ID environment variable is required")
     if not access_token:
         raise ValueError("GITLAB_ACCESS_TOKEN environment variable is required")
 

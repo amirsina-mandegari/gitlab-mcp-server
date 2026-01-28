@@ -16,13 +16,17 @@ from .get_merge_request_reviews import get_merge_request_reviews
 from .get_merge_request_test_report import get_merge_request_test_report
 from .get_pipeline_test_summary import get_pipeline_test_summary
 from .list_merge_requests import list_merge_requests
+from .list_my_projects import list_my_projects
 from .list_project_labels import list_project_labels
 from .list_project_members import list_project_members
 from .merge_merge_request import merge_merge_request
 from .reply_to_review_comment import create_review_comment, reply_to_review_comment, resolve_review_discussion
+from .search_projects import search_projects
 from .update_merge_request import update_merge_request
 
 __all__ = [
+    "search_projects",
+    "list_my_projects",
     "list_merge_requests",
     "get_merge_request_reviews",
     "get_merge_request_details",

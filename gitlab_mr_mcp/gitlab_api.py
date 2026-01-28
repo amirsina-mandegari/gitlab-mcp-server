@@ -431,8 +431,7 @@ async def create_project_label(gitlab_url, project_id, access_token, name, color
     if color:
         data["color"] = color
     else:
-        # Default to a random nice color
-        data["color"] = "#428BCA"  # Nice blue
+        data["color"] = "#428BCA"
     if description:
         data["description"] = description
 
@@ -440,3 +439,35 @@ async def create_project_label(gitlab_url, project_id, access_token, name, color
         async with session.post(url, headers=headers, json=data) as response:
             json_data = await response.json() if response.content_type == "application/json" else {}
             return (response.status, json_data, await response.text())
+
+
+async def search_projects(gitlab_url, access_token, search=None, membership=True, limit=20):
+    """Search for projects by name or path"""
+    url = f"{gitlab_url}/api/v4/projects"
+    headers = _headers(access_token)
+    params = {"per_page": limit, "order_by": "last_activity_at", "sort": "desc"}
+
+    if search:
+        params["search"] = search
+    if membership:
+        params["membership"] = "true"
+
+    async with get_session() as session:
+        async with session.get(url, headers=headers, params=params) as response:
+            return (response.status, await response.json(), await response.text())
+
+
+async def list_user_projects(gitlab_url, access_token, owned=False, membership=True, limit=20):
+    """List projects the user has access to"""
+    url = f"{gitlab_url}/api/v4/projects"
+    headers = _headers(access_token)
+    params = {"per_page": limit, "order_by": "last_activity_at", "sort": "desc"}
+
+    if owned:
+        params["owned"] = "true"
+    if membership:
+        params["membership"] = "true"
+
+    async with get_session() as session:
+        async with session.get(url, headers=headers, params=params) as response:
+            return (response.status, await response.json(), await response.text())
